@@ -47,8 +47,19 @@ http {
             proxy_set_header X-Forwarded-Proto https;
         }
 
-        # Bot actor and outbox/inbox
+        # Bot actor — redirect browsers to homepage, proxy AP clients to Botkit
         location /ap/ {
+            # If browser (accepts text/html but not activity+json), redirect to homepage
+            if ($http_accept ~* "text/html" ) {
+                set $maybe_redirect "html";
+            }
+            if ($http_accept !~* "application/activity\+json|application/ld\+json") {
+                set $maybe_redirect "${maybe_redirect}_noap";
+            }
+            if ($maybe_redirect = "html_noap") {
+                return 302 /;
+            }
+
             proxy_pass http://botkit;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
