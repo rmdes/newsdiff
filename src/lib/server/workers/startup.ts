@@ -30,3 +30,22 @@ export async function startWorkers() {
 
 	console.log(`Started feed poller with ${activeFeeds.length} active feeds`);
 }
+
+export async function scheduleFeed(feedId: number, feedUrl: string, checkInterval: number) {
+	const { feedPollQueue } = createQueues();
+	await feedPollQueue.upsertJobScheduler(
+		`poll-feed-${feedId}`,
+		{ every: checkInterval * 60 * 1000 },
+		{
+			name: `poll-feed-${feedId}`,
+			data: { feedId, feedUrl }
+		}
+	);
+	// Also trigger an immediate poll
+	await feedPollQueue.add(`poll-feed-${feedId}-immediate`, { feedId, feedUrl });
+}
+
+export async function unscheduleFeed(feedId: number) {
+	const { feedPollQueue } = createQueues();
+	await feedPollQueue.removeJobScheduler(`poll-feed-${feedId}`);
+}

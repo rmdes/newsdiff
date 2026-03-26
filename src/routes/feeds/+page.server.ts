@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { feeds } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+import { scheduleFeed, unscheduleFeed } from '$lib/server/workers/startup';
 
 export const load: PageServerLoad = async () => {
 	const allFeeds = await db.select().from(feeds).orderBy(feeds.createdAt);
@@ -22,7 +23,8 @@ export const actions = {
 		const existing = await db.select().from(feeds).where(eq(feeds.url, url)).limit(1);
 		if (existing.length > 0) return fail(400, { error: 'Feed already exists' });
 
-		await db.insert(feeds).values({ url, name });
+		const [newFeed] = await db.insert(feeds).values({ url, name }).returning();
+		await scheduleFeed(newFeed.id, newFeed.url, newFeed.checkInterval);
 		return { success: true };
 	},
 
@@ -31,12 +33,19 @@ export const actions = {
 		const id = Number(data.get('id'));
 		const isActive = data.get('isActive') === 'true';
 		await db.update(feeds).set({ isActive }).where(eq(feeds.id, id));
+		if (isActive) {
+			const [feed] = await db.select().from(feeds).where(eq(feeds.id, id)).limit(1);
+			if (feed) await scheduleFeed(feed.id, feed.url, feed.checkInterval);
+		} else {
+			await unscheduleFeed(id);
+		}
 		return { success: true };
 	},
 
 	remove: async ({ request }) => {
 		const data = await request.formData();
 		const id = Number(data.get('id'));
+		await unscheduleFeed(id);
 		await db.delete(feeds).where(eq(feeds.id, id));
 		return { success: true };
 	}
