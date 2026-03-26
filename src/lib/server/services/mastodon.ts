@@ -45,7 +45,7 @@ export async function postToMastodon(params: {
 
 	let mediaIds: string[] = [];
 	if (params.imageBuffer) {
-		const blob = new Blob([params.imageBuffer], { type: 'image/png' });
+		const blob = new Blob([new Uint8Array(params.imageBuffer)], { type: 'image/png' });
 		const file = new File([blob], 'diff.png', { type: 'image/png' });
 		const media = await client.v2.media.create({ file, description: params.imageAltText || '' });
 		mediaIds = [media.id];
