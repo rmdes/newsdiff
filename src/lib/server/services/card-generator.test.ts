@@ -2,16 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { generateDiffCard, generateAltText } from './card-generator';
 
 describe('generateDiffCard', () => {
-	it('returns a PNG buffer', async () => {
+	it('returns a PNG buffer with diff content', async () => {
 		const png = await generateDiffCard({
 			feedName: 'NYT',
 			articleTitle: 'Test Article',
-			titleChanged: true,
-			contentChanged: false,
+			titleChanged: false,
+			contentChanged: true,
 			charsAdded: 42,
 			charsRemoved: 10,
-			oldTitle: 'Old Title',
-			newTitle: 'New Title'
+			diffHtml: '<div class="diff-content">The <del>quick</del><ins>slow</ins> brown fox jumps over the lazy dog.</div>'
 		});
 		expect(png).toBeInstanceOf(Buffer);
 		expect(png[0]).toBe(0x89);

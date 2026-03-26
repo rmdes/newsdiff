@@ -18,14 +18,15 @@ async function fileExists(path: string): Promise<boolean> {
 	}
 }
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
 	const id = Number(params.id);
 	if (isNaN(id)) throw error(404, 'Not found');
 
 	const cachedPath = join(IMAGE_DIR, `diff-${id}.png`);
 
-	// Serve from cache if available
-	if (await fileExists(cachedPath)) {
+	// Serve from cache (skip if ?regenerate is set)
+	const regenerate = url.searchParams.has('regenerate');
+	if (!regenerate && await fileExists(cachedPath)) {
 		const buffer = await readFile(cachedPath);
 		return new Response(buffer, {
 			headers: {
@@ -55,7 +56,8 @@ export const GET: RequestHandler = async ({ params }) => {
 		charsAdded: diff.charsAdded,
 		charsRemoved: diff.charsRemoved,
 		oldTitle: diff.titleChanged ? (diff.oldVersion.title || undefined) : undefined,
-		newTitle: diff.titleChanged ? (diff.newVersion.title || undefined) : undefined
+		newTitle: diff.titleChanged ? (diff.newVersion.title || undefined) : undefined,
+		diffHtml: diff.diffHtml
 	};
 
 	const imageBuffer = await generateDiffCard(cardData);
