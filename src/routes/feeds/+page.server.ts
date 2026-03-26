@@ -2,10 +2,18 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { feeds } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { scheduleFeed, unscheduleFeed } from '$lib/server/workers/startup';
+import { isOidcEnabled, parseSessionCookie } from '$lib/server/auth';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ request }) => {
+	if (isOidcEnabled()) {
+		const user = parseSessionCookie(request.headers.get('cookie'));
+		if (!user) {
+			throw redirect(302, '/auth/login?returnTo=/feeds');
+		}
+	}
+
 	const allFeeds = await db.select().from(feeds).orderBy(feeds.createdAt);
 	return { feeds: allFeeds };
 };

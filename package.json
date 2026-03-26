@@ -38,6 +38,7 @@
 		"drizzle-orm": "^0.45.1",
 		"linkedom": "^0.18.12",
 		"masto": "^7.10.2",
+		"openid-client": "^6.8.2",
 		"postgres": "^3.4.8",
 		"rss-parser": "^3.13.0",
 		"satori": "^0.26.0",
