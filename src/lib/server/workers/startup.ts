@@ -1,5 +1,6 @@
 import { createQueues } from './queues';
 import { createFeedPollerWorker } from './feed-poller';
+import { createSyndicatorWorker } from './syndicator';
 import { db } from '../db';
 import { feeds } from '../db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,6 +13,7 @@ export async function startWorkers() {
 
 	const { feedPollQueue } = createQueues();
 	createFeedPollerWorker();
+	createSyndicatorWorker();
 
 	const activeFeeds = await db.select().from(feeds).where(eq(feeds.isActive, true));
 
