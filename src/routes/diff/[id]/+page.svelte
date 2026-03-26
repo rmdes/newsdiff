@@ -1,6 +1,54 @@
 <script lang="ts">
 	let { data } = $props();
 	const { diff, prevDiffId, nextDiffId } = data;
+
+	let canShare = $state(false);
+	let shareStatus = $state('');
+
+	$effect(() => {
+		canShare = typeof navigator !== 'undefined' && !!navigator.share;
+	});
+
+	async function shareDiff() {
+		shareStatus = 'Preparing...';
+		try {
+			// Fetch the image to include as a file
+			const imageUrl = `/api/diff/${diff.id}/image.png`;
+			const response = await fetch(imageUrl);
+			const blob = await response.blob();
+			const file = new File([blob], `diff-${diff.id}.png`, { type: 'image/png' });
+
+			const title = diff.newVersion.title || diff.oldVersion.title || 'Article changed';
+			const changeDesc = [
+				diff.titleChanged ? 'headline' : '',
+				diff.contentChanged ? 'content' : ''
+			].filter(Boolean).join(' & ');
+
+			await navigator.share({
+				title: `${title} — ${changeDesc} changed`,
+				text: `${changeDesc.charAt(0).toUpperCase() + changeDesc.slice(1)} changed in "${title}" (${diff.article.feed.name})`,
+				url: window.location.href,
+				files: [file]
+			});
+			shareStatus = '';
+		} catch (err: any) {
+			if (err.name === 'AbortError') {
+				shareStatus = '';
+				return;
+			}
+			// Fallback: try sharing without the file (some browsers don't support file sharing)
+			try {
+				const title = diff.newVersion.title || diff.oldVersion.title || 'Article changed';
+				await navigator.share({
+					title,
+					url: window.location.href
+				});
+				shareStatus = '';
+			} catch {
+				shareStatus = '';
+			}
+		}
+	}
 </script>
 
 <svelte:head>
@@ -27,6 +75,11 @@
 			{#if diff.isBoring}<span class="badge badge-boring">Boring</span>{/if}
 		</div>
 		<div class="actions">
+			{#if canShare}
+				<button class="btn btn-share" onclick={shareDiff}>
+					{shareStatus || 'Share'}
+				</button>
+			{/if}
 			<a href="/api/diff/{diff.id}/image.png" download="diff-{diff.id}.png" class="btn btn-export">Download image</a>
 			<button class="btn btn-copy" onclick={() => {
 				navigator.clipboard.writeText(window.location.href);
@@ -69,6 +122,8 @@
 	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
 	.btn { display: inline-flex; align-items: center; padding: 0.4rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: 1px solid var(--color-border); background: white; color: var(--color-text); }
 	.btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-	.btn-export { background: var(--color-primary); color: white; border-color: var(--color-primary); }
-	.btn-export:hover { background: #1d4ed8; color: white; }
+	.btn-share { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+	.btn-share:hover { background: #1d4ed8; color: white; }
+	.btn-export { background: white; }
+	.btn-export:hover { background: #f0f4ff; }
 </style>
