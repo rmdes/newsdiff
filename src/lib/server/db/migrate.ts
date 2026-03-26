@@ -13,7 +13,10 @@ const db = drizzle(client);
 
 async function runMigrations() {
 	console.log('Running migrations...');
-	await migrate(db, { migrationsFolder: './src/lib/server/db/migrations' });
+	const path = await import('node:path');
+	const url = await import('node:url');
+	const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+	await migrate(db, { migrationsFolder: path.join(__dirname, 'migrations') });
 	console.log('Migrations complete');
 	await client.end();
 }

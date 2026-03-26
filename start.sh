@@ -22,7 +22,7 @@ export IMAGE_DIR=/app/data/images
 
 # Run database migrations (always, idempotent)
 echo "==> Running database migrations"
-gosu cloudron:cloudron node /app/code/build/migrate.js
+gosu cloudron:cloudron node --import tsx/esm /app/code/src/lib/server/db/migrate.ts
 
 echo "==> Setting permissions"
 chown -R cloudron:cloudron /app/data
