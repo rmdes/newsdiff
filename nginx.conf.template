@@ -57,7 +57,7 @@ http {
                 set $maybe_redirect "${maybe_redirect}_noap";
             }
             if ($maybe_redirect = "html_noap") {
-                return 302 https://$host/;
+                return 302 https://$host/about;
             }
 
             proxy_pass http://botkit;

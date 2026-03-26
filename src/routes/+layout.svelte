@@ -12,6 +12,7 @@
 		<a href="/" class="logo" data-sveltekit-preload-data="hover">NewsDiff</a>
 		<div class="nav-links">
 			<a href="/" data-sveltekit-preload-data="hover">Home</a>
+			<a href="/about" data-sveltekit-preload-data="hover">About</a>
 			<a href="/feeds" data-sveltekit-preload-data="hover">Feeds</a>
 		</div>
 	</nav>
