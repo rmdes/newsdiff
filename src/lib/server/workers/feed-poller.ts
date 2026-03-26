@@ -41,25 +41,23 @@ async function processArticle(articleUrl: string, feedId: number) {
 	if (!response.ok) return;
 	const html = await response.text();
 
-	const extracted = extractArticle(html, articleUrl);
+	// Use the final URL after redirects (e.g., http:// -> https://)
+	const finalUrl = response.url || articleUrl;
+
+	const extracted = extractArticle(html, finalUrl);
 	if (!extracted) return;
 
 	const contentHash = computeHash(extracted.content);
 
-	// Find or create article record
-	let [article] = await db
-		.select()
-		.from(articles)
-		.where(eq(articles.url, articleUrl))
-		.limit(1);
-
-	if (!article) {
-		const [newArticle] = await db
-			.insert(articles)
-			.values({ feedId, url: articleUrl })
-			.returning();
-		article = newArticle;
-	}
+	// Find or create article record (upsert to handle concurrent inserts and redirected URLs)
+	const [article] = await db
+		.insert(articles)
+		.values({ feedId, url: finalUrl })
+		.onConflictDoUpdate({
+			target: articles.url,
+			set: { feedId }
+		})
+		.returning();
 
 	// Get latest version
 	const [latestVersion] = await db
