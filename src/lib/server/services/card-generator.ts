@@ -15,6 +15,7 @@ export interface DiffCardData {
 
 function loadFont(): { data: Buffer; name: string; weight: 400; style: 'normal' } {
 	const fontPaths = [
+		'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
 		'/usr/share/fonts/google-carlito-fonts/Carlito-Regular.ttf',
 		'/usr/share/fonts/liberation-fonts/LiberationSans-Regular.ttf',
 		'/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf',
