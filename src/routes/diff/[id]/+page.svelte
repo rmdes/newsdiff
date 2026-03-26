@@ -1,12 +1,16 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+
 	let { data } = $props();
 	const { diff, prevDiffId, nextDiffId } = data;
 
-	let canShare = $state(false);
+	let shareSupported = $state(false);
 	let shareStatus = $state('');
 
 	$effect(() => {
-		canShare = typeof navigator !== 'undefined' && !!navigator.share;
+		if (browser) {
+			shareSupported = !!navigator.share;
+		}
 	});
 
 	async function shareDiff() {
@@ -75,11 +79,9 @@
 			{#if diff.isBoring}<span class="badge badge-boring">Boring</span>{/if}
 		</div>
 		<div class="actions">
-			{#if canShare}
-				<button class="btn btn-share" onclick={shareDiff}>
-					{shareStatus || 'Share'}
-				</button>
-			{/if}
+			<button class="btn btn-share" hidden={!shareSupported} onclick={shareDiff}>
+				{shareStatus || 'Share'}
+			</button>
 			<a href="/api/diff/{diff.id}/image.png" download="diff-{diff.id}.png" class="btn btn-export">Download image</a>
 			<button class="btn btn-copy" onclick={() => {
 				navigator.clipboard.writeText(window.location.href);
