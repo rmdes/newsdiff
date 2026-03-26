@@ -8,6 +8,10 @@ export const feeds = pgTable('feeds', {
 	siteName: text('site_name'),
 	checkInterval: integer('check_interval').notNull().default(5),
 	isActive: boolean('is_active').notNull().default(true),
+	lastError: text('last_error'),
+	lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
+	consecutiveErrors: integer('consecutive_errors').notNull().default(0),
+	lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 

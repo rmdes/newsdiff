@@ -13,8 +13,31 @@ export interface FeedPollJobData {
 	feedUrl: string;
 }
 
+const USER_AGENT = 'NewsDiff/0.1 (+https://github.com/newsdiff; RSS feed monitor)';
+const MAX_CONSECUTIVE_ERRORS = 5;
+const FETCH_TIMEOUT = 15000; // 15 seconds
+
+async function fetchWithUA(url: string): Promise<Response> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+	try {
+		return await fetch(url, {
+			headers: {
+				'User-Agent': USER_AGENT,
+				'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+				'Accept-Language': 'en-US,en;q=0.5'
+			},
+			signal: controller.signal,
+			redirect: 'follow'
+		});
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
 async function processArticle(articleUrl: string, feedId: number) {
-	const response = await fetch(articleUrl);
+	const response = await fetchWithUA(articleUrl);
 	if (!response.ok) return;
 	const html = await response.text();
 
@@ -129,28 +152,69 @@ async function processArticle(articleUrl: string, feedId: number) {
 async function pollFeed(job: Job<FeedPollJobData>) {
 	const { feedId, feedUrl } = job.data;
 
-	const { siteName, items } = await fetchAndParseFeed(feedUrl);
+	// Check if feed is still active
+	const [feed] = await db.select().from(feeds).where(eq(feeds.id, feedId)).limit(1);
+	if (!feed || !feed.isActive) return;
 
-	if (siteName) {
-		await db.update(feeds).set({ siteName }).where(eq(feeds.id, feedId));
-	}
+	try {
+		const { siteName, items } = await fetchAndParseFeed(feedUrl);
 
-	for (const item of items) {
-		const [existing] = await db
-			.select()
-			.from(articles)
-			.where(eq(articles.url, item.url))
-			.limit(1);
+		// Feed fetch succeeded — reset error counter
+		await db.update(feeds).set({
+			siteName: siteName || feed.siteName,
+			lastError: null,
+			lastErrorAt: null,
+			consecutiveErrors: 0,
+			lastSuccessAt: new Date()
+		}).where(eq(feeds.id, feedId));
 
-		if (existing && !shouldCheckArticle(existing.firstSeenAt, existing.lastCheckedAt)) {
-			continue;
+		let articleErrors = 0;
+		for (const item of items) {
+			const [existing] = await db
+				.select()
+				.from(articles)
+				.where(eq(articles.url, item.url))
+				.limit(1);
+
+			if (existing && !shouldCheckArticle(existing.firstSeenAt, existing.lastCheckedAt)) {
+				continue;
+			}
+
+			try {
+				await processArticle(item.url, feedId);
+			} catch (err: any) {
+				articleErrors++;
+				console.error(`Failed to process article ${item.url}: ${err.message || err}`);
+			}
 		}
 
-		try {
-			await processArticle(item.url, feedId);
-		} catch (err) {
-			console.error(`Failed to process article ${item.url}:`, err);
+		if (articleErrors > 0) {
+			console.log(`Feed ${feed.name}: ${items.length - articleErrors}/${items.length} articles processed (${articleErrors} failed)`);
 		}
+	} catch (err: any) {
+		// Feed-level failure (couldn't fetch or parse the RSS feed itself)
+		const errorMsg = err.message || String(err);
+		const newErrorCount = (feed.consecutiveErrors || 0) + 1;
+
+		console.error(`Feed "${feed.name}" poll failed (${newErrorCount}/${MAX_CONSECUTIVE_ERRORS}): ${errorMsg}`);
+
+		const updates: Record<string, any> = {
+			lastError: errorMsg.slice(0, 500),
+			lastErrorAt: new Date(),
+			consecutiveErrors: newErrorCount
+		};
+
+		// Auto-disable after MAX_CONSECUTIVE_ERRORS
+		if (newErrorCount >= MAX_CONSECUTIVE_ERRORS) {
+			updates.isActive = false;
+			console.error(`Feed "${feed.name}" auto-disabled after ${MAX_CONSECUTIVE_ERRORS} consecutive failures`);
+
+			// Remove the scheduler so it stops polling
+			const { unscheduleFeed } = await import('./startup');
+			await unscheduleFeed(feedId);
+		}
+
+		await db.update(feeds).set(updates).where(eq(feeds.id, feedId));
 	}
 }
 

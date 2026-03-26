@@ -1,6 +1,14 @@
 import Parser from 'rss-parser';
 
-const parser = new Parser();
+const USER_AGENT = 'NewsDiff/0.1 (+https://github.com/newsdiff; RSS feed monitor)';
+
+const parser = new Parser({
+	headers: {
+		'User-Agent': USER_AGENT,
+		'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.1'
+	},
+	timeout: 15000
+});
 
 export interface FeedItem {
 	title: string;
