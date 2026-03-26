@@ -6,7 +6,7 @@ startWorkers().catch((err) => {
 	console.error('Failed to start workers:', err);
 });
 
-const PROTECTED_PATHS = ['/feeds'];
+const PROTECTED_PATHS = ['/feeds', '/bot/profile'];
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// Check auth for protected paths

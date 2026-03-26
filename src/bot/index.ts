@@ -2,6 +2,8 @@ import { createBot, text, link, Image, parseSemVer, type Session } from "@fedify
 import { RedisKvStore, RedisMessageQueue } from "@fedify/redis";
 import Redis from "ioredis";
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Lazy-initialized bot instance (avoid connecting to Redis at import time)
 let _bot: ReturnType<typeof createBot<void>> | undefined;
@@ -14,24 +16,70 @@ function getRedis(): Redis {
 	});
 }
 
+interface BotProfileField {
+	name: string;
+	value: string;
+}
+
+interface BotProfile {
+	username: string;
+	displayName: string;
+	summary: string;
+	avatarUrl: string;
+	headerUrl: string;
+	fields: BotProfileField[];
+}
+
+function loadProfileSync(): BotProfile {
+	const configDir = process.env.BOT_CONFIG_DIR || '/app/data/config';
+	const defaults: BotProfile = {
+		username: process.env.BOT_USERNAME || 'bot',
+		displayName: process.env.BOT_NAME || 'NewsDiff Bot',
+		summary: 'I track changes in news articles and post the diffs. Follow me to see when headlines and content get edited after publication.',
+		avatarUrl: '',
+		headerUrl: '',
+		fields: []
+	};
+
+	try {
+		const data = readFileSync(join(configDir, 'bot-profile.json'), 'utf-8');
+		return { ...defaults, ...JSON.parse(data) };
+	} catch {
+		return defaults;
+	}
+}
+
 function getBot() {
 	if (_bot) return _bot;
 
-	const BOT_USERNAME = process.env.BOT_USERNAME || "bot";
-	const BOT_NAME = process.env.BOT_NAME || "NewsDiff Bot";
-	const BOT_SUMMARY = "I track changes in news articles and post the diffs. Follow me to see when headlines and content get edited after publication.";
-
+	const profile = loadProfileSync();
 	const origin = process.env.BOT_ORIGIN || process.env.ORIGIN || "https://localhost";
 
+	// Build properties from profile fields
+	const properties: Record<string, ReturnType<typeof text> | ReturnType<typeof link>> = {};
+	for (const field of profile.fields) {
+		if (!field.name || !field.value) continue;
+		// If the value looks like a URL, use link(); otherwise use text``
+		try {
+			new URL(field.value);
+			properties[field.name] = link(field.value);
+		} catch {
+			properties[field.name] = text`${field.value}`;
+		}
+	}
+
+	// Add default Website field if not in profile fields
+	if (!properties['Website'] && origin) {
+		properties['Website'] = link(origin);
+	}
+
 	_bot = createBot<void>({
-		username: BOT_USERNAME,
-		name: BOT_NAME,
-		summary: text`${BOT_SUMMARY}`,
-		properties: {
-			"Website": link(origin),
-			"What I do": text`I monitor RSS feeds and post diffs when news articles are edited after publication.`,
-			"Source": link("https://github.com/rmdes/newsdiff"),
-		},
+		username: profile.username,
+		name: profile.displayName,
+		summary: text`${profile.summary}`,
+		icon: profile.avatarUrl ? new URL(profile.avatarUrl) : undefined,
+		image: profile.headerUrl ? new URL(profile.headerUrl) : undefined,
+		properties,
 		software: {
 			name: "newsdiff",
 			version: parseSemVer("0.1.0"),
