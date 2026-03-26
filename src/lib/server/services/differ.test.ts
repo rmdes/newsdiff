@@ -32,10 +32,39 @@ describe('isBoring', () => {
 	it('returns true for whitespace-only changes', () => {
 		expect(isBoring('hello  world', 'hello world')).toBe(true);
 	});
+
 	it('returns false for substantive changes', () => {
 		expect(isBoring('The quick brown fox', 'The slow brown fox')).toBe(false);
 	});
+
 	it('returns true for identical content', () => {
 		expect(isBoring('same', 'same')).toBe(true);
+	});
+
+	it('returns true for relative time changes ("8 HRS ago" -> "9 HRS ago")', () => {
+		const old = 'Article title\n\nSome description.\n\n8 HRS ago\n\n2 mins read';
+		const new_ = 'Article title\n\nSome description.\n\n9 HRS ago\n\n2 mins read';
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('returns true for "3 hours ago" -> "4 hours ago"', () => {
+		const old = 'Great article content here.\n\nPublished 3 hours ago';
+		const new_ = 'Great article content here.\n\nPublished 4 hours ago';
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('returns true for small numeric-only changes in large text', () => {
+		const body = 'A'.repeat(500);
+		expect(isBoring(`${body}\n\n123 views`, `${body}\n\n456 views`)).toBe(true);
+	});
+
+	it('returns false for real content changes even if small', () => {
+		expect(isBoring('The president said hello', 'The president said goodbye')).toBe(false);
+	});
+
+	it('returns true for date-only changes', () => {
+		const old = 'Article content.\n\nMar 24\n\n2 mins read';
+		const new_ = 'Article content.\n\nMar 25\n\n2 mins read';
+		expect(isBoring(old, new_)).toBe(true);
 	});
 });

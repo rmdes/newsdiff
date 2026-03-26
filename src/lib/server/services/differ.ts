@@ -29,9 +29,48 @@ export function computeDiff(oldText: string, newText: string): DiffResult {
 	return { html, charsAdded, charsRemoved };
 }
 
+/**
+ * Determines if a diff is "boring" — not worth showing to users.
+ * Boring diffs include: whitespace-only, timestamp/time-ago changes,
+ * tiny numeric changes, and other noise patterns.
+ */
 export function isBoring(oldText: string, newText: string): boolean {
+	// Whitespace-only changes
 	const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
-	return normalize(oldText) === normalize(newText);
+	if (normalize(oldText) === normalize(newText)) return true;
+
+	// Strip timestamps and relative times before comparing
+	const stripTime = (s: string) =>
+		s
+			// Relative times: "8 HRS ago", "3 hours ago", "2 mins ago", "5 minutes read", etc.
+			.replace(/\d+\s*(hrs?|hours?|mins?|minutes?|secs?|seconds?|days?|weeks?|months?)\s*(ago|read|old)?/gi, '')
+			// Absolute times: "Mar 24", "March 24, 2026", "2026-03-24", "24/03/2026", "12:34 PM"
+			.replace(/\b\d{1,2}:\d{2}\s*(AM|PM)?\b/gi, '')
+			.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '')
+			.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, '')
+			.replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2}(?:,?\s*\d{4})?\b/gi, '')
+			.replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*(?:\s+\d{4})?\b/gi, '')
+			// "Updated X ago", "Published X ago"
+			.replace(/(?:updated|published|posted|modified)\s*:?\s*\d+\s*\w+\s*ago/gi, '');
+
+	if (normalize(stripTime(oldText)) === normalize(stripTime(newText))) return true;
+
+	// Very small changes in large text are likely noise
+	const changes = diffWords(oldText, newText);
+	const added = changes.filter(c => c.added);
+	const removed = changes.filter(c => c.removed);
+	const totalChanged = added.reduce((s, c) => s + c.value.length, 0)
+		+ removed.reduce((s, c) => s + c.value.length, 0);
+	const totalLength = Math.max(oldText.length, newText.length);
+
+	// If total changed chars are tiny relative to the document, check if it's just numbers
+	if (totalChanged <= 10 && totalLength > 200) {
+		const allChangedText = [...added, ...removed].map(c => c.value).join('');
+		// Only numbers, whitespace, and punctuation changed
+		if (/^[\d\s.,;:!?/\-–—]+$/.test(allChangedText)) return true;
+	}
+
+	return false;
 }
 
 function escapeHtml(text: string): string {
