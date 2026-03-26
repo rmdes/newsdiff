@@ -1,4 +1,4 @@
-import { createBot, text, link, Image, type Session } from "@fedify/botkit";
+import { createBot, text, link, Image, parseSemVer, type Session } from "@fedify/botkit";
 import { RedisKvStore, RedisMessageQueue } from "@fedify/redis";
 import Redis from "ioredis";
 import { createServer } from "node:http";
@@ -21,10 +21,25 @@ function getBot() {
 	const BOT_NAME = process.env.BOT_NAME || "NewsDiff Bot";
 	const BOT_SUMMARY = "I track changes in news articles and post the diffs. Follow me to see when headlines and content get edited after publication.";
 
+	const origin = process.env.BOT_ORIGIN || process.env.ORIGIN || "https://localhost";
+
 	_bot = createBot<void>({
 		username: BOT_USERNAME,
 		name: BOT_NAME,
 		summary: text`${BOT_SUMMARY}`,
+		properties: {
+			"Website": link(origin),
+			"What I do": text`I monitor RSS feeds and post diffs when news articles are edited after publication.`,
+			"Source": link("https://github.com/rmdes/newsdiff"),
+		},
+		software: {
+			name: "newsdiff",
+			version: parseSemVer("0.1.0"),
+			homepage: new URL(origin),
+		},
+		pages: {
+			color: "blue",
+		},
 		kv: new RedisKvStore(getRedis()),
 		queue: new RedisMessageQueue(() => getRedis()),
 		behindProxy: true,
