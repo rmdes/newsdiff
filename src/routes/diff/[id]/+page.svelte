@@ -6,7 +6,10 @@
 <svelte:head>
 	<title>Diff: {diff.newVersion.title || 'Untitled'} — NewsDiff</title>
 	<meta property="og:title" content="Article changed: {diff.newVersion.title}" />
-	<meta property="og:image" content="/diff/{diff.id}.png" />
+	<meta property="og:image" content="/api/diff/{diff.id}/image.png" />
+	<meta property="og:image:width" content="800" />
+	<meta property="og:image:height" content="418" />
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <article class="diff-view">
@@ -22,6 +25,14 @@
 			{#if diff.titleChanged}<span class="badge badge-title">Headline changed</span>{/if}
 			{#if diff.contentChanged}<span class="badge badge-content">Content changed</span>{/if}
 			{#if diff.isBoring}<span class="badge badge-boring">Boring</span>{/if}
+		</div>
+		<div class="actions">
+			<a href="/api/diff/{diff.id}/image.png" download="diff-{diff.id}.png" class="btn btn-export">Download image</a>
+			<button class="btn btn-copy" onclick={() => {
+				navigator.clipboard.writeText(window.location.href);
+				const el = document.querySelector('.btn-copy');
+				if (el) { el.textContent = 'Copied!'; setTimeout(() => el.textContent = 'Copy link', 2000); }
+			}}>Copy link</button>
 		</div>
 	</header>
 
@@ -55,4 +66,9 @@
 	.diff-body { line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; }
 	.diff-nav { display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
 	.diff-nav a { color: var(--color-primary); text-decoration: none; }
+	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+	.btn { display: inline-flex; align-items: center; padding: 0.4rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: 1px solid var(--color-border); background: white; color: var(--color-text); }
+	.btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+	.btn-export { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+	.btn-export:hover { background: #1d4ed8; color: white; }
 </style>
