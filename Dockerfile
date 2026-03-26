@@ -24,6 +24,7 @@ ENV NODE_ENV=production
 RUN rm -rf /app/code/images && ln -s /app/data/images /app/code/images
 
 # Copy packaging files
-COPY start.sh env.sh.template /app/pkg/
+COPY start.sh env.sh.template nginx.conf.template /app/pkg/
+RUN mv /app/pkg/nginx.conf.template /app/pkg/nginx.conf
 
 CMD ["/app/pkg/start.sh"]

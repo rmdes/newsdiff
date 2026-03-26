@@ -1,0 +1,75 @@
+worker_processes 1;
+pid /run/nginx.pid;
+error_log stderr warn;
+
+events {
+    worker_connections 256;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log /dev/stdout;
+
+    # Temp paths in writable directory
+    client_body_temp_path /run/nginx-client-body;
+    proxy_temp_path /run/nginx-proxy;
+    fastcgi_temp_path /run/nginx-fastcgi;
+    uwsgi_temp_path /run/nginx-uwsgi;
+    scgi_temp_path /run/nginx-scgi;
+
+    upstream sveltekit {
+        server 127.0.0.1:3000;
+    }
+
+    upstream botkit {
+        server 127.0.0.1:8001;
+    }
+
+    server {
+        listen 8000;
+        server_name _;
+
+        client_max_body_size 10m;
+
+        # ActivityPub / WebFinger endpoints → Botkit
+        location /.well-known/webfinger {
+            proxy_pass http://botkit;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /.well-known/nodeinfo {
+            proxy_pass http://botkit;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Bot actor and outbox/inbox
+        location /users/ {
+            proxy_pass http://botkit;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # NodeInfo
+        location /nodeinfo/ {
+            proxy_pass http://botkit;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Everything else → SvelteKit
+        location / {
+            proxy_pass http://sveltekit;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+        }
+    }
+}

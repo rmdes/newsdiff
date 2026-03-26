@@ -5,7 +5,7 @@ import { diffs, socialPosts } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { generateDiffCard, generateAltText } from '../services/card-generator';
 import { postToBluesky, buildBlueskyPost, isBlueskyConfigured } from '../services/bluesky';
-import { postToMastodon, buildMastodonStatus, isMastodonConfigured } from '../services/mastodon';
+import { publishDiff as publishApDiff } from '../../../bot/index';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -35,7 +35,8 @@ async function syndicate(job: Job<SyndicateJobData>) {
 		charsAdded: diff.charsAdded,
 		charsRemoved: diff.charsRemoved,
 		oldTitle: diff.titleChanged ? (diff.oldVersion.title || undefined) : undefined,
-		newTitle: diff.titleChanged ? (diff.newVersion.title || undefined) : undefined
+		newTitle: diff.titleChanged ? (diff.newVersion.title || undefined) : undefined,
+		diffHtml: diff.diffHtml
 	};
 
 	const imageBuffer = await generateDiffCard(cardData);
@@ -45,20 +46,24 @@ async function syndicate(job: Job<SyndicateJobData>) {
 	const imagePath = join(IMAGE_DIR, `diff-${diff.id}.png`);
 	await writeFile(imagePath, imageBuffer);
 
+	// Build the public image URL for ActivityPub (needs full URL, not blob)
+	const origin = process.env.ORIGIN || process.env.BOT_ORIGIN || '';
+	const imageUrl = `${origin}/api/diff/${diff.id}/image.png`;
+
 	// Find existing thread references for this article
-	const existingBskyPosts = await db
+	const existingPosts = await db
 		.select()
 		.from(socialPosts)
 		.innerJoin(diffs, eq(socialPosts.diffId, diffs.id))
 		.where(eq(diffs.articleId, diff.articleId));
 
-	// Bluesky
+	// ── Bluesky ──
 	const bskyHandle = process.env.BLUESKY_HANDLE;
 	const bskyPassword = process.env.BLUESKY_PASSWORD;
 
 	if (isBlueskyConfigured(bskyHandle, bskyPassword)) {
 		try {
-			const bskyThread = existingBskyPosts.find(
+			const bskyThread = existingPosts.find(
 				(p) => p.social_posts.platform === 'bluesky' && p.social_posts.threadRootUri
 			);
 
@@ -76,7 +81,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				rootRef = root;
 				parentRef = root;
 			} else {
-				const latest = existingBskyPosts
+				const latest = existingPosts
 					.filter((p) => p.social_posts.platform === 'bluesky')
 					.pop();
 				if (latest?.social_posts.postUri) {
@@ -105,66 +110,53 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				threadRootUri: rootRef ? `${rootRef.uri}|${rootRef.cid}` : `${result.uri}|${result.cid}`,
 				imagePath, postedAt: new Date()
 			});
+
+			console.log(`Bluesky: posted diff ${diff.id} for "${cardData.articleTitle}"`);
 		} catch (err: any) {
+			console.error(`Bluesky post failed for diff ${diff.id}:`, err.message);
 			await db.insert(socialPosts).values({
 				diffId: diff.id, platform: 'bluesky', imagePath, error: err.message
 			});
 		}
 	}
 
-	// Mastodon
-	const mastoInstance = process.env.MASTODON_INSTANCE;
-	const mastoToken = process.env.MASTODON_ACCESS_TOKEN;
+	// ── ActivityPub (Botkit) ──
+	try {
+		const apThread = existingPosts.find(
+			(p) => p.social_posts.platform === 'activitypub' && p.social_posts.threadRootUri
+		);
 
-	if (isMastodonConfigured(mastoInstance, mastoToken)) {
-		try {
-			const mastoThread = existingBskyPosts.find(
-				(p) => p.social_posts.platform === 'mastodon' && p.social_posts.threadRootUri
-			);
+		const latest = existingPosts
+			.filter((p) => p.social_posts.platform === 'activitypub')
+			.pop();
 
-			let replyToId: string | undefined;
-			let threadRootId: string | undefined;
+		const result = await publishApDiff({
+			articleTitle: cardData.articleTitle,
+			articleUrl: diff.article.url,
+			feedName: diff.article.feed.name,
+			titleChanged: diff.titleChanged,
+			contentChanged: diff.contentChanged,
+			charsAdded: diff.charsAdded,
+			charsRemoved: diff.charsRemoved,
+			imageUrl,
+			replyToId: latest?.social_posts.postUri || undefined
+		});
 
-			if (!mastoThread) {
-				const rootStatus = buildMastodonStatus({
-					isRoot: true, articleUrl: diff.article.url,
-					articleTitle: cardData.articleTitle, feedName: diff.article.feed.name
-				});
-				const root = await postToMastodon({
-					instance: mastoInstance!, accessToken: mastoToken!, status: rootStatus
-				});
-				replyToId = root.id;
-				threadRootId = root.id;
-			} else {
-				const latest = existingBskyPosts
-					.filter((p) => p.social_posts.platform === 'mastodon')
-					.pop();
-				replyToId = latest?.social_posts.postUri || undefined;
-				threadRootId = latest?.social_posts.threadRootUri || undefined;
-			}
+		await db.insert(socialPosts).values({
+			diffId: diff.id,
+			platform: 'activitypub',
+			postUri: result.id,
+			threadRootUri: apThread?.social_posts.threadRootUri || result.id,
+			imagePath,
+			postedAt: new Date()
+		});
 
-			const replyStatus = buildMastodonStatus({
-				isRoot: false, articleUrl: diff.article.url,
-				articleTitle: cardData.articleTitle, feedName: diff.article.feed.name,
-				titleChanged: diff.titleChanged, contentChanged: diff.contentChanged,
-				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved
-			});
-
-			const result = await postToMastodon({
-				instance: mastoInstance!, accessToken: mastoToken!,
-				status: replyStatus, imageBuffer, imageAltText: altText, inReplyToId: replyToId
-			});
-
-			await db.insert(socialPosts).values({
-				diffId: diff.id, platform: 'mastodon',
-				postUri: result.id, threadRootUri: threadRootId || result.id,
-				imagePath, postedAt: new Date()
-			});
-		} catch (err: any) {
-			await db.insert(socialPosts).values({
-				diffId: diff.id, platform: 'mastodon', imagePath, error: err.message
-			});
-		}
+		console.log(`ActivityPub: posted diff ${diff.id} for "${cardData.articleTitle}"`);
+	} catch (err: any) {
+		console.error(`ActivityPub post failed for diff ${diff.id}:`, err.message);
+		await db.insert(socialPosts).values({
+			diffId: diff.id, platform: 'activitypub', imagePath, error: err.message
+		});
 	}
 }
 
