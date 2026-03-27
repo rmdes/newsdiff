@@ -119,20 +119,21 @@ export async function reloadBotProfile(): Promise<void> {
 			undefined
 		);
 		const actorUri = ctx.getActorUri(username);
+		const actor = await ctx.getActor(username);
 
 		await ctx.sendActivity(
 			{ identifier: username },
 			"followers",
 			new Update({
-				id: new URL(`${actorUri.href}#profile-update-${Date.now()}`),
 				actor: actorUri,
-				object: actorUri,
+				object: actor,
 			}),
 			{ preferSharedInbox: true }
 		);
 		console.log('Bot profile reloaded and Update broadcast to followers');
 	} catch (err: any) {
 		console.error('Bot profile reloaded but broadcast failed:', err.message);
+		console.error(err.stack);
 	}
 }
 
