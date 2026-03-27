@@ -120,11 +120,12 @@ export async function reloadBotProfile(): Promise<void> {
 		const actorUri = ctx.getActorUri(username);
 		const actor = await ctx.getActor(username);
 		if (actor) {
-			// Dynamically import Update from Botkit's nested Fedify v1 at runtime
-			// (static import gets bundled by Vite and resolves to @fedify/vocab v2)
+			// Dynamically require Update from Botkit's nested Fedify v1 at runtime.
+			// Static imports resolve to @fedify/vocab v2 (incompatible types).
 			const { createRequire } = await import("module");
-			const botkitPkg = createRequire(import.meta.url).resolve("@fedify/botkit");
-			const fedifyVocab = createRequire(botkitPkg)("@fedify/fedify/vocab");
+			const require = createRequire(import.meta.url);
+			const botkitFedifyPath = require.resolve("@fedify/botkit/package.json").replace("/package.json", "/node_modules/@fedify/fedify/dist/vocab/mod.cjs");
+			const fedifyVocab = require(botkitFedifyPath);
 			const update = new fedifyVocab.Update({ actor: actorUri, object: actor });
 			await ctx.sendActivity(
 				{ identifier: username },
