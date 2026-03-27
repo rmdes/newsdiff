@@ -117,20 +117,23 @@ export async function reloadBotProfile(): Promise<void> {
 			new Request(origin),
 			undefined
 		);
+		// Create Update activity using Botkit's Fedify v1. We can't use the
+		// Update constructor directly (v1's Object export is broken in CJS),
+		// so we construct an empty Update and clone it with the object set.
 		const actorUri = ctx.getActorUri(username);
 		const actor = await ctx.getActor(username);
 		if (actor) {
-			// Dynamically require Update from Botkit's nested Fedify v1 at runtime.
-			// Static imports resolve to @fedify/vocab v2 (incompatible types).
 			const { createRequire } = await import("module");
-			const require = createRequire(import.meta.url);
-			const botkitFedifyPath = require.resolve("@fedify/botkit/package.json").replace("/package.json", "/node_modules/@fedify/fedify/dist/vocab/mod.cjs");
-			const fedifyVocab = require(botkitFedifyPath);
-			const update = new fedifyVocab.Update({ actor: actorUri, object: actor });
+			const req = createRequire(import.meta.url);
+			const v1Path = req.resolve("@fedify/botkit/package.json").replace("/package.json", "/node_modules/@fedify/fedify/dist/vocab/mod.cjs");
+			const v1 = req(v1Path);
+			// Build Update without object, then use clone() to set it
+			const update = new v1.Update({ actor: actorUri });
+			const withObject = update.clone({ objectIds: [actorUri] });
 			await ctx.sendActivity(
 				{ identifier: username },
 				"followers",
-				update,
+				withObject,
 				{ preferSharedInbox: true }
 			);
 			console.log('Bot profile reloaded and Update broadcast to followers');
