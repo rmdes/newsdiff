@@ -10,6 +10,7 @@
 	<a href={article.url} target="_blank" rel="noopener">{article.url}</a>
 	<span>{article.feed.name}</span>
 	<span>{article.versions.length} version{article.versions.length !== 1 ? 's' : ''}</span>
+	<a href="/article/{article.id}/feed.xml" class="feed-link">Atom feed</a>
 </div>
 
 {#if article.diffs.length > 0}
@@ -35,6 +36,7 @@
 <style>
 	.meta { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--color-muted); margin-bottom: 2rem; flex-wrap: wrap; }
 	.meta a { color: var(--color-primary); word-break: break-all; }
+	.feed-link { word-break: normal; }
 	h2 { font-size: 1.1rem; margin-bottom: 1rem; }
 	.diff-list { display: flex; flex-direction: column; gap: 0.5rem; }
 	.diff-card { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.25rem; text-decoration: none; color: var(--color-text); background: white; }
