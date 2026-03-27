@@ -1,11 +1,33 @@
 import type { Actions, PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
 import { loadBotProfile, saveBotProfile } from '$lib/server/bot-profile';
 import { reloadBotProfile } from '../../../bot/index';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import sharp from 'sharp';
 
 const IMAGE_DIR = process.env.IMAGE_DIR || './images';
 const BOT_IMAGE_DIR = join(IMAGE_DIR, 'bot');
+
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp']);
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+async function processUpload(file: File, outputName: string): Promise<string | { error: string }> {
+	if (file.size > MAX_IMAGE_SIZE) {
+		return { error: `${outputName} must be under 5MB` };
+	}
+	const ext = file.name.split('.').pop()?.toLowerCase() || '';
+	if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
+		return { error: 'Only PNG, JPG, and WebP images are allowed' };
+	}
+	await mkdir(BOT_IMAGE_DIR, { recursive: true });
+	const buffer = Buffer.from(await file.arrayBuffer());
+	// Re-encode through sharp to validate content and strip metadata
+	const sanitized = await sharp(buffer).png().toBuffer();
+	const filename = `${outputName}.png`;
+	await writeFile(join(BOT_IMAGE_DIR, filename), sanitized);
+	return filename;
+}
 
 export const load: PageServerLoad = async () => {
 	const profile = await loadBotProfile();
@@ -18,9 +40,9 @@ export const actions = {
 
 		const profile = await loadBotProfile();
 
-		// Update text fields — use formData values directly (allow clearing)
-		const displayName = formData.get('displayName')?.toString().trim();
-		const summary = formData.get('summary')?.toString().trim();
+		// Update text fields with length limits
+		const displayName = formData.get('displayName')?.toString().trim().slice(0, 200);
+		const summary = formData.get('summary')?.toString().trim().slice(0, 2000);
 
 		if (displayName !== undefined) profile.displayName = displayName || profile.displayName;
 		if (summary !== undefined) profile.summary = summary || profile.summary;
@@ -28,32 +50,26 @@ export const actions = {
 		// Handle avatar upload
 		const avatar = formData.get('avatar') as File | null;
 		if (avatar && avatar.size > 0) {
-			await mkdir(BOT_IMAGE_DIR, { recursive: true });
-			const ext = avatar.name.split('.').pop() || 'png';
-			const filename = `avatar.${ext}`;
-			const buffer = Buffer.from(await avatar.arrayBuffer());
-			await writeFile(join(BOT_IMAGE_DIR, filename), buffer);
+			const result = await processUpload(avatar, 'avatar');
+			if (typeof result === 'object') return fail(400, result);
 			const origin = process.env.ORIGIN || process.env.BOT_ORIGIN || '';
-			profile.avatarUrl = `${origin}/bot-images/${filename}`;
+			profile.avatarUrl = `${origin}/bot-images/${result}`;
 		}
 
 		// Handle header upload
 		const header = formData.get('header') as File | null;
 		if (header && header.size > 0) {
-			await mkdir(BOT_IMAGE_DIR, { recursive: true });
-			const ext = header.name.split('.').pop() || 'png';
-			const filename = `header.${ext}`;
-			const buffer = Buffer.from(await header.arrayBuffer());
-			await writeFile(join(BOT_IMAGE_DIR, filename), buffer);
+			const result = await processUpload(header, 'header');
+			if (typeof result === 'object') return fail(400, result);
 			const origin = process.env.ORIGIN || process.env.BOT_ORIGIN || '';
-			profile.headerUrl = `${origin}/bot-images/${filename}`;
+			profile.headerUrl = `${origin}/bot-images/${result}`;
 		}
 
-		// Handle profile fields (up to 6)
+		// Handle profile fields (up to 6, with length limits)
 		const fields: { name: string; value: string }[] = [];
 		for (let i = 0; i < 6; i++) {
-			const name = formData.get(`field_name_${i}`)?.toString().trim();
-			const value = formData.get(`field_value_${i}`)?.toString().trim();
+			const name = formData.get(`field_name_${i}`)?.toString().trim().slice(0, 200);
+			const value = formData.get(`field_value_${i}`)?.toString().trim().slice(0, 500);
 			if (name && value) {
 				fields.push({ name, value });
 			}
@@ -62,7 +78,6 @@ export const actions = {
 
 		await saveBotProfile(profile);
 
-		// Reload the bot with updated profile
 		try {
 			await reloadBotProfile();
 		} catch (err) {

@@ -40,7 +40,12 @@ async function fetchWithUA(url: string): Promise<Response> {
 async function processArticle(articleUrl: string, feedId: number) {
 	const response = await fetchWithUA(articleUrl);
 	if (!response.ok) return;
+
+	// Limit response size to prevent OOM from huge pages
+	const contentLength = Number(response.headers.get('content-length') || 0);
+	if (contentLength > 10 * 1024 * 1024) return;
 	const html = await response.text();
+	if (html.length > 10 * 1024 * 1024) return;
 
 	// Use the final URL after redirects (e.g., http:// -> https://)
 	const finalUrl = response.url || articleUrl;

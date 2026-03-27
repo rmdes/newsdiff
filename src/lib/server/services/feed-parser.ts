@@ -1,5 +1,30 @@
 import Parser from 'rss-parser';
 
+const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB
+
+async function readWithLimit(response: Response, limit: number = MAX_RESPONSE_SIZE): Promise<string> {
+	const contentLength = Number(response.headers.get('content-length') || 0);
+	if (contentLength > limit) {
+		throw new Error(`Response too large: ${contentLength} bytes`);
+	}
+	const reader = response.body?.getReader();
+	if (!reader) throw new Error('No response body');
+
+	const chunks: Uint8Array[] = [];
+	let totalSize = 0;
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		totalSize += value.length;
+		if (totalSize > limit) {
+			reader.cancel();
+			throw new Error(`Response exceeded ${limit} byte limit`);
+		}
+		chunks.push(value);
+	}
+	return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
 const USER_AGENT = 'NewsDiff/0.1 (+https://github.com/rmdes/newsdiff; RSS feed monitor)';
 
 const parser = new Parser({
@@ -78,7 +103,7 @@ export async function fetchAndParseFeed(feedUrl: string): Promise<{ siteName: st
 		throw new Error(`Feed fetch failed: ${response.status} ${response.statusText}`);
 	}
 
-	const text = await response.text();
+	const text = await readWithLimit(response);
 
 	// Try JSON Feed
 	try {

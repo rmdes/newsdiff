@@ -1,5 +1,5 @@
 import * as client from 'openid-client';
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 let config: client.Configuration | null = null;
 let configPromise: Promise<client.Configuration> | null = null;
@@ -9,7 +9,11 @@ const COOKIE_NAME = 'newsdiff_session';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 function getSecret(): string {
-	return process.env.OIDC_SESSION_SECRET || process.env.CLOUDRON_OIDC_CLIENT_SECRET || 'dev-secret-change-me';
+	const secret = process.env.OIDC_SESSION_SECRET || process.env.CLOUDRON_OIDC_CLIENT_SECRET;
+	if (!secret) {
+		throw new Error('FATAL: No session secret configured. Set OIDC_SESSION_SECRET or CLOUDRON_OIDC_CLIENT_SECRET.');
+	}
+	return secret;
 }
 
 export function isOidcEnabled(): boolean {
@@ -92,7 +96,9 @@ export function parseSessionCookie(cookieHeader: string | null): { email: string
 	const payload = Buffer.from(payloadB64, 'base64url').toString();
 	const expectedSig = createHmac('sha256', getSecret()).update(payload).digest('base64url');
 
-	if (signature !== expectedSig) return null;
+	const sigBuf = Buffer.from(signature, 'base64url');
+	const expectedBuf = Buffer.from(expectedSig, 'base64url');
+	if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) return null;
 
 	try {
 		const data = JSON.parse(payload);

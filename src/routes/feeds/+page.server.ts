@@ -17,8 +17,14 @@ export const actions = {
 		const name = data.get('name')?.toString().trim();
 
 		if (!url || !name) return fail(400, { error: 'URL and name are required' });
+		if (name.length > 200) return fail(400, { error: 'Name too long (max 200 chars)' });
+		if (url.length > 2048) return fail(400, { error: 'URL too long (max 2048 chars)' });
 
-		try { new URL(url); } catch { return fail(400, { error: 'Invalid URL' }); }
+		let parsedUrl: URL;
+		try { parsedUrl = new URL(url); } catch { return fail(400, { error: 'Invalid URL' }); }
+		if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+			return fail(400, { error: 'Only HTTP and HTTPS URLs are allowed' });
+		}
 
 		const existing = await db.select().from(feeds).where(eq(feeds.url, url)).limit(1);
 		if (existing.length > 0) return fail(400, { error: 'Feed already exists' });

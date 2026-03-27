@@ -24,7 +24,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		if (state) {
 			try {
 				const parsed = JSON.parse(Buffer.from(state, 'base64url').toString());
-				if (parsed.returnTo) returnTo = parsed.returnTo;
+				if (parsed.returnTo && typeof parsed.returnTo === 'string'
+					&& parsed.returnTo.startsWith('/') && !parsed.returnTo.startsWith('//')) {
+					returnTo = parsed.returnTo;
+				}
 			} catch { /* use default */ }
 		}
 

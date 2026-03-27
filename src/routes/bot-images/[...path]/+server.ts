@@ -11,8 +11,7 @@ const MIME_TYPES: Record<string, string> = {
 	'jpg': 'image/jpeg',
 	'jpeg': 'image/jpeg',
 	'webp': 'image/webp',
-	'gif': 'image/gif',
-	'svg': 'image/svg+xml'
+	'gif': 'image/gif'
 };
 
 export const GET: RequestHandler = async ({ params }) => {
