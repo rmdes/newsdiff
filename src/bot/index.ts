@@ -120,17 +120,22 @@ export async function reloadBotProfile(): Promise<void> {
 		);
 		const actorUri = ctx.getActorUri(username);
 		const actor = await ctx.getActor(username);
+		console.log('Actor type:', actor?.constructor?.name, 'is null:', actor === null);
 
-		await ctx.sendActivity(
-			{ identifier: username },
-			"followers",
-			new Update({
-				actor: actorUri,
-				object: actor,
-			}),
-			{ preferSharedInbox: true }
-		);
-		console.log('Bot profile reloaded and Update broadcast to followers');
+		if (actor) {
+			await ctx.sendActivity(
+				{ identifier: username },
+				"followers",
+				new Update({
+					actor: actorUri,
+					object: actor,
+				}),
+				{ preferSharedInbox: true }
+			);
+			console.log('Bot profile reloaded and Update broadcast to followers');
+		} else {
+			console.log('Bot profile reloaded (getActor returned null)');
+		}
 	} catch (err: any) {
 		console.error('Bot profile reloaded but broadcast failed:', err.message);
 		console.error(err.stack);
