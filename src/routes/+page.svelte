@@ -28,6 +28,15 @@
 				class:active={data.feedFilter === String(feed.id)}
 			>{feed.name}</a>
 		{/each}
+		<a href={data.feedFilter ? `/feed/${data.feedFilter}.xml` : '/feed.xml'}
+			class="rss-icon" title="Subscribe to this feed (Atom)">
+			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256">
+				<rect width="256" height="256" rx="55" ry="55" fill="#f26522"/>
+				<circle cx="68" cy="189" r="28" fill="#fff"/>
+				<path d="M160 213h-34a82 82 0 0 0-82-82V97a116 116 0 0 1 116 116z" fill="#fff"/>
+				<path d="M224 213h-34a148 148 0 0 0-148-148V31a182 182 0 0 1 182 182z" fill="#fff"/>
+			</svg>
+		</a>
 	</div>
 	<label>
 		<input type="checkbox" checked={data.showBoring}
@@ -76,6 +85,8 @@
 	.feed-tabs a { padding: 0.2rem 0.6rem; border-radius: 1rem; text-decoration: none; background: var(--color-border); color: var(--color-text); font-size: 0.8rem; transition: background 0.15s; }
 	.feed-tabs a:hover { background: var(--color-primary); color: white; }
 	.feed-tabs a.active { background: var(--color-primary); color: white; }
+	.rss-icon { display: inline-flex; align-items: center; background: none !important; padding: 0.2rem !important; }
+	.rss-icon:hover { background: none !important; opacity: 0.8; }
 	label { font-size: 0.8rem; white-space: nowrap; color: var(--color-muted); }
 	.diff-list { display: flex; flex-direction: column; gap: 1rem; }
 	.diff-card { display: block; padding: 1rem; border: 1px solid var(--color-border); border-radius: 0.5rem; text-decoration: none; color: var(--color-text); background: white; transition: border-color 0.15s; }
