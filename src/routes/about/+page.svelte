@@ -60,7 +60,8 @@
 			<dd><a href="https://svelte.dev/docs/kit" target="_blank" rel="noopener">SvelteKit</a> — web framework</dd>
 			<dd><a href="https://orm.drizzle.team" target="_blank" rel="noopener">Drizzle ORM</a> — database</dd>
 			<dd><a href="https://docs.bullmq.io" target="_blank" rel="noopener">BullMQ</a> — job queue</dd>
-			<dd><a href="https://github.com/mozilla/readability" target="_blank" rel="noopener">@mozilla/readability</a> — content extraction</dd>
+			<dd><a href="https://github.com/kepano/defuddle" target="_blank" rel="noopener">Defuddle</a> — content extraction (primary)</dd>
+			<dd><a href="https://github.com/mozilla/readability" target="_blank" rel="noopener">@mozilla/readability</a> — content extraction (fallback)</dd>
 			<dd><a href="https://github.com/kpdecker/jsdiff" target="_blank" rel="noopener">jsdiff</a> — diff computation</dd>
 
 			<dt>Federation</dt>

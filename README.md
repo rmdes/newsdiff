@@ -7,7 +7,7 @@ Draws inspiration from [newsdiffs](https://github.com/danielsci/newsdiffs), [dif
 ## Features
 
 - Monitor any RSS/Atom/JSON Feed for article changes
-- Automatic content extraction via Mozilla Readability (no per-site parsers)
+- Automatic content extraction via [Defuddle](https://github.com/kepano/defuddle) with Readability fallback (no per-site parsers)
 - Word-level diffs with inline highlighting
 - Visual diff card images for social sharing + full-height diff image download
 - ActivityPub bot (Fediverse/Mastodon-compatible) via [Botkit](https://botkit.fedify.dev) with threaded replies
@@ -26,8 +26,8 @@ Draws inspiration from [newsdiffs](https://github.com/danielsci/newsdiffs), [dif
 | Framework | SvelteKit (adapter-node) |
 | Database | PostgreSQL + Drizzle ORM |
 | Job Queue | BullMQ (Redis-backed) |
-| RSS Parsing | rss-parser |
-| Content Extraction | @mozilla/readability + linkedom |
+| Feed Parsing | rss-parser + JSON Feed |
+| Content Extraction | Defuddle (primary) + @mozilla/readability (fallback) + JSDOM |
 | Diffing | diff (jsdiff) — word-level |
 | ActivityPub | @fedify/botkit |
 | Bluesky | @atproto/api |

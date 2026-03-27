@@ -29,6 +29,7 @@
 	{#if botHandle}
 		<p>Follow on the fediverse: <a href={botActorUrl} rel="me">{botHandle}</a></p>
 	{/if}
+	<p><a href="https://github.com/rmdes/newsdiff">Source code</a> · <a href="/feed.xml">Atom feed</a></p>
 </footer>
 
 <style>

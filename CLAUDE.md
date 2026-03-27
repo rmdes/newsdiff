@@ -24,7 +24,7 @@ A modern news article diff tracker that monitors RSS feeds for changes in titles
 | ORM | Drizzle |
 | Job Queue | BullMQ (Redis-backed, Cloudron addon) |
 | Feed Parsing | rss-parser + JSON Feed |
-| Content Extraction | @mozilla/readability + linkedom |
+| Content Extraction | Defuddle (primary) + @mozilla/readability (fallback) + JSDOM |
 | Diffing | diff (jsdiff) — word-level |
 | Bluesky SDK | @atproto/api |
 | ActivityPub | @fedify/botkit |
