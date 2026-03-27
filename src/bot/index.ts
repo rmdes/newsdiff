@@ -1,5 +1,12 @@
 import { createBot, text, link, Image, parseSemVer, type Session } from "@fedify/botkit";
-import { Update } from "@fedify/vocab";
+// Import Update from Botkit's own Fedify (v1), not our @fedify/vocab (v2).
+// The actor from ctx.getActor() is a v1 Service — v2's Update rejects it.
+import { createRequire } from "module";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+const _botkitDir = dirname(fileURLToPath(import.meta.resolve("@fedify/botkit")));
+const _botkitRequire = createRequire(_botkitDir + "/");
+const { Update } = _botkitRequire("@fedify/fedify/vocab") as { Update: any };
 import { RedisKvStore, RedisMessageQueue } from "@fedify/redis";
 import Redis from "ioredis";
 import { createServer } from "node:http";
@@ -120,8 +127,6 @@ export async function reloadBotProfile(): Promise<void> {
 		);
 		const actorUri = ctx.getActorUri(username);
 		const actor = await ctx.getActor(username);
-		console.log('Actor type:', actor?.constructor?.name, 'is null:', actor === null);
-
 		if (actor) {
 			await ctx.sendActivity(
 				{ identifier: username },
