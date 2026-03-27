@@ -67,4 +67,28 @@ describe('isBoring', () => {
 		const new_ = 'Article content.\n\nMar 25\n\n2 mins read';
 		expect(isBoring(old, new_)).toBe(true);
 	});
+
+	it('returns true for appended "Updated HH:MM" timestamp', () => {
+		const old = 'Published on 27/03/2026 - 12:39 GMT+1 Ukraine and Saudi Arabia agreed on defence cooperation.';
+		const new_ = 'Published on 27/03/2026 - 12:39 GMT+1 • Updated 15:10 Ukraine and Saudi Arabia agreed on defence cooperation.';
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('returns true for "Updated March 27, 2026" appended', () => {
+		const old = 'Some article content here.\n\nPublished March 27, 2026';
+		const new_ = 'Some article content here.\n\nPublished March 27, 2026\n\nUpdated March 27, 2026 at 3:10 PM';
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('returns true for "Last modified: DATE" changes', () => {
+		const old = 'Article text.\n\nLast modified: 2026-03-26';
+		const new_ = 'Article text.\n\nLast modified: 2026-03-27';
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('returns true for "Updated TIME" replacing "Published TIME"', () => {
+		const old = 'Content.\n\nPublished 12:39';
+		const new_ = 'Content.\n\nUpdated 15:10';
+		expect(isBoring(old, new_)).toBe(true);
+	});
 });
