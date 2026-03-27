@@ -1,11 +1,3 @@
-## Project Configuration
-
-- **Language**: TypeScript
-- **Package Manager**: npm
-- **Add-ons**: none
-
----
-
 # CLAUDE.md — newsdiff
 
 ## Project Vision
@@ -20,12 +12,6 @@ A modern news article diff tracker that monitors RSS feeds for changes in titles
 4. **Web frontend** as the primary interface for browsing and viewing diffs
 5. **Social syndication** — post diff summaries/images to Bluesky and Mastodon
 6. **No Twitter/X** — explicitly excluded from scope
-
-## Status
-
-**Design approved** — ready for implementation planning.
-
-See: `docs/plans/2026-03-26-newsdiff-design.md`
 
 ## Tech Stack
 

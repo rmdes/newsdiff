@@ -1,10 +1,11 @@
 <script>
 	import '../app.css';
-	let { children } = $props();
+	let { data, children } = $props();
+	const { botHandle, botActorUrl } = data;
 </script>
 
 <svelte:head>
-	<link rel="me" href="https://diff.rmendes.net/ap/actor/bot" />
+	{#if botActorUrl}<link rel="me" href={botActorUrl} />{/if}
 </svelte:head>
 
 <header>
@@ -24,7 +25,9 @@
 </main>
 
 <footer class="container">
-	<p>Follow on the fediverse: <a href="https://diff.rmendes.net/ap/actor/bot" rel="me">@bot@diff.rmendes.net</a></p>
+	{#if botHandle}
+		<p>Follow on the fediverse: <a href={botActorUrl} rel="me">{botHandle}</a></p>
+	{/if}
 </footer>
 
 <style>

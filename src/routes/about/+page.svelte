@@ -1,3 +1,8 @@
+<script>
+	let { data } = $props();
+	const { botHandle, botActorUrl } = data;
+</script>
+
 <svelte:head>
 	<title>About — NewsDiff</title>
 	<meta name="description" content="NewsDiff tracks how news articles change after publication, making the editorial process visible." />
@@ -74,7 +79,9 @@
 	<section class="follow">
 		<h2>Follow the diffs</h2>
 		<p>The bot posts every non-trivial diff to the fediverse. Follow it from any Mastodon, Pleroma, or Misskey instance:</p>
-		<p class="handle"><a href="https://diff.rmendes.net/ap/actor/bot" rel="me">@bot@diff.rmendes.net</a></p>
+		{#if botHandle}
+			<p class="handle"><a href={botActorUrl} rel="me">{botHandle}</a></p>
+		{/if}
 	</section>
 </article>
 
