@@ -2,15 +2,18 @@
 	import { browser } from '$app/environment';
 
 	let { data } = $props();
-	const { diff, prevDiffId, nextDiffId } = data;
+	const { diff, prevDiffId, nextDiffId, apPostUri } = data;
 
 	let isMobile = $state(false);
 	let shareMenuOpen = $state(false);
 	let shareStatus = $state('');
+	let instanceModalOpen = $state(false);
+	let instanceInput = $state('');
 
 	$effect(() => {
 		if (browser) {
 			isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+			instanceInput = localStorage.getItem('fedi-instance') || '';
 		}
 	});
 
@@ -39,7 +42,6 @@
 			});
 		} catch (err: any) {
 			if (err.name !== 'AbortError') {
-				// Fallback without file
 				try {
 					await navigator.share({ text: buildShareText(), url: window.location.href });
 				} catch { /* user cancelled */ }
@@ -65,6 +67,27 @@
 		shareMenuOpen = false;
 		shareStatus = 'Copied!';
 		setTimeout(() => shareStatus = '', 2000);
+	}
+
+	function openOnFediverse() {
+		const saved = localStorage.getItem('fedi-instance');
+		if (saved) {
+			window.open(`https://${saved}/authorize_interaction?uri=${encodeURIComponent(apPostUri!)}`, '_blank');
+		} else {
+			instanceModalOpen = true;
+		}
+	}
+
+	function submitInstance() {
+		const instance = instanceInput.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+		if (!instance) return;
+		localStorage.setItem('fedi-instance', instance);
+		instanceModalOpen = false;
+		window.open(`https://${instance}/authorize_interaction?uri=${encodeURIComponent(apPostUri!)}`, '_blank');
+	}
+
+	function changeInstance() {
+		instanceModalOpen = true;
 	}
 </script>
 
@@ -111,6 +134,15 @@
 				</div>
 			{/if}
 			<a href="/api/diff/{diff.id}/full.png" download="diff-{diff.id}-full.png" class="btn">Download image</a>
+			{#if apPostUri}
+				<button class="btn btn-fedi" onclick={openOnFediverse} title="View or interact with this post on the fediverse">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 74 79" fill="currentColor" style="margin-right: 0.3rem;">
+						<path d="M73.7 17.7c-1-6.2-6.3-11-12.7-12.3C54.5 4 37.2 2 37.2 2h-.1C27 2 19.5 4 13 5.4 6.6 6.7 1.3 11.5.3 17.7c-.5 3.3-.9 7.1-.9 11 0 3.2.1 6.2.3 9 .7 9.4 5.3 17.7 13.4 21.4 3.8 1.8 8.1 2.7 12.5 3 4.5.3 8.7-.3 12.5-1.7 0 0 0 0 0 0-.3-1.4-.6-2.9-1-4.3-4 1.2-8.3 1.6-12.6 1.3-4.3-.3-8.5-1.7-8.8-6.5-.1-.5-.1-1-.1-1.5 4 1 8.1 1.6 12.3 1.8 2.6.1 5.1 0 7.6-.2 7.1-.7 13.3-2.9 14.1-5.3.6-1.8.8-3.8.8-5.9 0 0 0-.1 0-.1v-.2c0-6.3 2.4-7.2 2.4-7.2 2.4-1.1 1.3 4.4 1.3 7.2 0 2.4-.3 5.5-1.1 8.5-.5 2-1.4 3.8-2.5 5.4 4.1-1.7 7.5-4.6 9.5-8.5 2.5-5 2.8-10.9 2.8-15.9 0-3.9-.3-7.7-.9-11z"/>
+						<path d="M61.2 27.2v22.7h-9V28c0-4.6-1.9-7-5.8-7-4.3 0-6.4 2.8-6.4 8.3v12h-9V29.3c0-5.5-2.2-8.3-6.4-8.3-3.9 0-5.8 2.3-5.8 7v21.9h-9V27.2c0-4.6 1.2-8.3 3.5-11 2.4-2.7 5.6-4.1 9.5-4.1 4.5 0 7.9 1.7 10.2 5.2l2.2 3.7 2.2-3.7c2.2-3.5 5.7-5.2 10.2-5.2 3.9 0 7.1 1.4 9.5 4.1 2.3 2.7 3.5 6.4 3.5 11z"/>
+					</svg>
+					Also on
+				</button>
+			{/if}
 		</div>
 	</header>
 
@@ -125,6 +157,38 @@
 		{#if nextDiffId}<a href="/diff/{nextDiffId}">Next diff →</a>{:else}<span></span>{/if}
 	</nav>
 </article>
+
+<!-- Fediverse instance picker modal -->
+{#if instanceModalOpen}
+	<div class="modal-backdrop" onclick={() => instanceModalOpen = false}>
+		<div class="modal" onclick={(e) => e.stopPropagation()}>
+			<h3>Your Mastodon instance</h3>
+			<p>Enter your instance to interact with this post from your account.</p>
+			<form onsubmit={(e) => { e.preventDefault(); submitInstance(); }}>
+				<div class="instance-input">
+					<span class="instance-prefix">https://</span>
+					<input
+						type="text"
+						bind:value={instanceInput}
+						placeholder="mastodon.social"
+						autofocus
+					/>
+				</div>
+				<div class="modal-actions">
+					<button type="button" class="btn" onclick={() => instanceModalOpen = false}>Cancel</button>
+					<button type="submit" class="btn btn-share">Open on fediverse</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+{#if apPostUri && browser && localStorage.getItem('fedi-instance')}
+	<p class="instance-note">
+		Using <strong>{localStorage.getItem('fedi-instance')}</strong> —
+		<button class="link-btn" onclick={changeInstance}>change</button>
+	</p>
+{/if}
 
 <style>
 	.diff-view { max-width: 720px; }
@@ -144,11 +208,13 @@
 	.diff-body { line-height: 1.8; word-wrap: break-word; white-space: pre-line; }
 	.diff-nav { display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
 	.diff-nav a { color: var(--color-primary); text-decoration: none; }
-	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; align-items: flex-start; }
+	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; align-items: flex-start; flex-wrap: wrap; }
 	.btn { display: inline-flex; align-items: center; padding: 0.4rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: 1px solid var(--color-border); background: white; color: var(--color-text); }
 	.btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 	.btn-share { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 	.btn-share:hover { background: #1d4ed8; color: white; }
+	.btn-fedi { border-color: #6364ff; color: #6364ff; }
+	.btn-fedi:hover { background: #6364ff; color: white; }
 
 	.share-dropdown { position: relative; }
 	.share-menu {
@@ -163,4 +229,28 @@
 	}
 	.share-menu button:hover { background: #f0f4ff; color: var(--color-primary); }
 	.share-menu button:not(:last-child) { border-bottom: 1px solid var(--color-border); }
+
+	/* Instance picker modal */
+	.modal-backdrop {
+		position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+		display: flex; align-items: center; justify-content: center;
+	}
+	.modal {
+		background: white; border-radius: 0.5rem; padding: 1.5rem; max-width: 420px; width: 90%;
+		box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+	}
+	.modal h3 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+	.modal p { font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1rem; }
+	.instance-input {
+		display: flex; align-items: center; border: 1px solid var(--color-border); border-radius: 0.25rem;
+		overflow: hidden; margin-bottom: 1rem;
+	}
+	.instance-prefix { padding: 0.5rem; background: #f5f5f5; color: var(--color-muted); font-size: 0.85rem; border-right: 1px solid var(--color-border); }
+	.instance-input input {
+		flex: 1; border: none; padding: 0.5rem; font-size: 0.9rem; outline: none;
+	}
+	.modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+	.instance-note { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; }
+	.link-btn { border: none; background: none; color: var(--color-primary); cursor: pointer; font-size: 0.8rem; padding: 0; text-decoration: underline; }
 </style>

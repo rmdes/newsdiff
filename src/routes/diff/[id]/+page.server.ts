@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { diffs } from '$lib/server/db/schema';
+import { diffs, socialPosts } from '$lib/server/db/schema';
 import { eq, and, lt, gt } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 
@@ -29,5 +29,15 @@ export const load: PageServerLoad = async ({ params }) => {
 		orderBy: (d, { asc }) => [asc(d.id)]
 	});
 
-	return { diff, prevDiffId: prevDiff?.id ?? null, nextDiffId: nextDiff?.id ?? null };
+	// Find the AP post URI for this diff
+	const apPost = await db.query.socialPosts.findFirst({
+		where: and(eq(socialPosts.diffId, id), eq(socialPosts.platform, 'activitypub'))
+	});
+
+	return {
+		diff,
+		prevDiffId: prevDiff?.id ?? null,
+		nextDiffId: nextDiff?.id ?? null,
+		apPostUri: apPost?.postUri ?? null
+	};
 };
