@@ -36,12 +36,12 @@
 
 <style>
 	header { border-bottom: 1px solid var(--color-border); margin-bottom: 2rem; }
-	nav { display: flex; gap: 0.75rem; align-items: center; padding: 1rem 0; overflow: hidden; }
-	.logo { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 1.15rem; text-decoration: none; color: var(--color-text); white-space: nowrap; flex-shrink: 0; }
+	nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; padding: 1rem 0; }
+	.logo { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 1.15rem; text-decoration: none; color: var(--color-text); }
 	.logo:hover { color: var(--color-primary); }
-	.logo-img { width: 28px; height: 28px; min-width: 28px; border-radius: 4px; }
-	.nav-links { display: flex; gap: 0.6rem; margin-left: auto; flex-shrink: 1; min-width: 0; }
-	.nav-links a { color: var(--color-muted); text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
+	.logo-img { width: 28px; height: 28px; border-radius: 4px; }
+	.nav-links { display: flex; gap: 0.75rem; margin-left: auto; }
+	.nav-links a { color: var(--color-muted); text-decoration: none; font-size: 0.9rem; }
 	.nav-links a:hover { color: var(--color-primary); }
 	footer { margin-top: 3rem; padding: 1.5rem 0; border-top: 1px solid var(--color-border); font-size: 0.8rem; color: var(--color-muted); text-align: center; }
 	footer a { color: var(--color-primary); text-decoration: none; }
