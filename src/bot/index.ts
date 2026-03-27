@@ -1,4 +1,5 @@
 import { createBot, text, link, Image, parseSemVer, type Session } from "@fedify/botkit";
+import { Update } from "@fedify/vocab";
 import { RedisKvStore, RedisMessageQueue } from "@fedify/redis";
 import Redis from "ioredis";
 import { createServer } from "node:http";
@@ -108,9 +109,35 @@ export async function reloadBotProfile(): Promise<void> {
 	_bot = undefined; // Force re-creation on next getBot() call
 	_botFetch = undefined;
 	const bot = getBot();
-	// Botkit re-reads the config and the federation layer
-	// will broadcast the updated actor to followers on next interaction
-	console.log('Bot profile reloaded from disk');
+	const origin = process.env.BOT_ORIGIN || process.env.ORIGIN || "https://localhost";
+	const username = loadProfileSync().username;
+
+	// Broadcast Update activity to all followers so they refresh the profile
+	try {
+		const ctx = bot.federation.createContext(
+			new Request(origin),
+			undefined
+		);
+		const actorUri = ctx.getActorUri(username);
+		const actor = await ctx.getActor(username);
+		if (actor) {
+			await ctx.sendActivity(
+				{ identifier: username },
+				"followers",
+				new Update({
+					id: new URL(`${actorUri.href}#profile-update-${Date.now()}`),
+					actor: actorUri,
+					object: actor,
+				}),
+				{ preferSharedInbox: true }
+			);
+			console.log('Bot profile reloaded and Update broadcast to followers');
+		} else {
+			console.log('Bot profile reloaded (no actor to broadcast)');
+		}
+	} catch (err: any) {
+		console.error('Bot profile reloaded but broadcast failed:', err.message);
+	}
 }
 
 // Get a session for publishing
