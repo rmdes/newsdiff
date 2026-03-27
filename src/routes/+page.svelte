@@ -34,9 +34,8 @@
 	<title>NewsDiff — Recent Changes</title>
 </svelte:head>
 
-<h1>Recent Changes</h1>
-
 <div class="filters">
+	<h2 class="filter-label">Sources</h2>
 	<div class="feed-tabs">
 		<a href="/" class:active={!data.feedFilter}>All</a>
 		{#each data.feeds as feed}
@@ -65,6 +64,8 @@
 		Show boring
 	</label>
 </div>
+
+<h1>Recent Changes</h1>
 
 {#if data.groups.length === 0}
 	<p class="empty">
@@ -141,7 +142,8 @@
 {/if}
 
 <style>
-	.filters { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; }
+	.filters { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; gap: 0.5rem 1rem; }
+	.filter-label { font-size: 0.85rem; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.03em; width: 100%; margin: 0; }
 	.feed-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
 	.feed-tabs a { padding: 0.2rem 0.6rem; border-radius: 1rem; text-decoration: none; background: var(--color-border); color: var(--color-text); font-size: 0.8rem; transition: background 0.15s; }
 	.feed-tabs a:hover { background: var(--color-primary); color: white; }
