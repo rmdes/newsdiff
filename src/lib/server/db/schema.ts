@@ -33,6 +33,7 @@ export const versions = pgTable('versions', {
 	contentText: text('content_text').notNull(),
 	contentHash: text('content_hash').notNull(),
 	versionNumber: integer('version_number').notNull(),
+	archiveUrl: text('archive_url'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 

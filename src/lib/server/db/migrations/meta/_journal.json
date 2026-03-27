@@ -15,6 +15,13 @@
       "when": 1774557416366,
       "tag": "0001_chief_stephen_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774613210685,
+      "tag": "0002_reflective_deathbird",
+      "breakpoints": true
     }
   ]
 }

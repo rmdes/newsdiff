@@ -7,6 +7,7 @@ import { fetchAndParseFeed } from '../services/feed-parser';
 import { extractArticle, computeHash } from '../services/extractor';
 import { computeDiff, isBoring } from '../services/differ';
 import { shouldCheckArticle } from '../services/scheduler';
+import { archiveUrl } from '../services/archive';
 
 export interface FeedPollJobData {
 	feedId: number;
@@ -93,6 +94,14 @@ async function processArticle(articleUrl: string, feedId: number) {
 			versionNumber
 		})
 		.returning();
+
+	// Archive this version on the Wayback Machine (fire-and-forget)
+	archiveUrl(finalUrl).then(async (archived) => {
+		if (archived) {
+			await db.update(versions).set({ archiveUrl: archived }).where(eq(versions.id, newVersion.id));
+			console.log(`Archived ${finalUrl} → ${archived}`);
+		}
+	}).catch(() => {});
 
 	// Compute diff if not first version
 	if (latestVersion) {
