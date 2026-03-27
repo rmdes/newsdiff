@@ -141,7 +141,7 @@
 	.badge-boring { background: #e2e8f0; color: #475569; }
 	.diff-section { margin-bottom: 2rem; }
 	.diff-section h2 { font-size: 1rem; color: var(--color-muted); margin-bottom: 0.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.25rem; }
-	.diff-body { line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; }
+	.diff-body { line-height: 1.8; word-wrap: break-word; white-space: pre-line; }
 	.diff-nav { display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
 	.diff-nav a { color: var(--color-primary); text-decoration: none; }
 	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; align-items: flex-start; }
