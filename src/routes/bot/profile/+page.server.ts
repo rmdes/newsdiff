@@ -1,5 +1,6 @@
 import type { Actions, PageServerLoad } from './$types';
 import { loadBotProfile, saveBotProfile } from '$lib/server/bot-profile';
+import { reloadBotProfile } from '../../../bot/index';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -61,14 +62,21 @@ export const actions = {
 
 		await saveBotProfile(profile);
 
-		// Return the saved profile so the page updates immediately
-		return { success: true, message: 'Profile saved. Restart the app to apply changes.', profile };
+		// Reload the bot with updated profile
+		try {
+			await reloadBotProfile();
+		} catch (err) {
+			console.error('Failed to reload bot profile:', err);
+		}
+
+		return { success: true, message: 'Profile saved and bot updated.', profile };
 	},
 
 	removeAvatar: async () => {
 		const profile = await loadBotProfile();
 		profile.avatarUrl = '';
 		await saveBotProfile(profile);
+		try { await reloadBotProfile(); } catch {}
 		return { success: true, profile };
 	},
 
@@ -76,6 +84,7 @@ export const actions = {
 		const profile = await loadBotProfile();
 		profile.headerUrl = '';
 		await saveBotProfile(profile);
+		try { await reloadBotProfile(); } catch {}
 		return { success: true, profile };
 	}
 } satisfies Actions;

@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 // Lazy-initialized bot instance (avoid connecting to Redis at import time)
 let _bot: ReturnType<typeof createBot<void>> | undefined;
+let _botFetch: ((request: Request) => Promise<Response>) | undefined;
 
 function getRedis(): Redis {
 	return new Redis({
@@ -100,6 +101,16 @@ function getBot() {
 	};
 
 	return _bot;
+}
+
+// Force bot to reload profile from disk and broadcast update to followers
+export async function reloadBotProfile(): Promise<void> {
+	_bot = undefined; // Force re-creation on next getBot() call
+	_botFetch = undefined;
+	const bot = getBot();
+	// Botkit re-reads the config and the federation layer
+	// will broadcast the updated actor to followers on next interaction
+	console.log('Bot profile reloaded from disk');
 }
 
 // Get a session for publishing

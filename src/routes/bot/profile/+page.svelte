@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	let { data, form } = $props();
+	let profile = $derived(data.profile);
 
-	// Use profile from form action response if available, otherwise from load
-	let profile = $derived(form?.profile || data.profile);
-
-	// Ensure we always have at least 4 field slots
 	let fields = $derived((() => {
 		const f = [...(profile.fields || [])];
 		while (f.length < 4) f.push({ name: '', value: '' });
@@ -25,7 +22,8 @@
 		<div class="notice">{form.message || 'Saved.'}</div>
 	{/if}
 
-	<form method="POST" action="?/save" enctype="multipart/form-data" use:enhance>
+	<!-- No use:enhance — full page reload on save ensures form shows saved values -->
+	<form method="POST" action="?/save" enctype="multipart/form-data">
 		<section>
 			<h2>Identity</h2>
 
@@ -51,11 +49,11 @@
 							<img src={profile.avatarUrl} alt="Current avatar" />
 						</div>
 					{:else}
-						<div class="image-placeholder avatar-placeholder">No avatar</div>
+						<div class="image-placeholder">No avatar</div>
 					{/if}
 					<input type="file" name="avatar" accept="image/png,image/jpeg,image/webp" />
 					{#if profile.avatarUrl}
-						<form method="POST" action="?/removeAvatar" use:enhance class="inline-form">
+						<form method="POST" action="?/removeAvatar" class="inline-form">
 							<button type="submit" class="remove-btn">Remove</button>
 						</form>
 					{/if}
@@ -72,7 +70,7 @@
 					{/if}
 					<input type="file" name="header" accept="image/png,image/jpeg,image/webp" />
 					{#if profile.headerUrl}
-						<form method="POST" action="?/removeHeader" use:enhance class="inline-form">
+						<form method="POST" action="?/removeHeader" class="inline-form">
 							<button type="submit" class="remove-btn">Remove</button>
 						</form>
 					{/if}
@@ -98,27 +96,6 @@
 			<button type="submit" class="btn-save">Save Profile</button>
 		</div>
 	</form>
-
-	<section class="current-values">
-		<h2>Current Saved Values</h2>
-		<dl>
-			<dt>Handle</dt>
-			<dd class="handle-value">@{profile.username}@diff.rmendes.net</dd>
-			<dt>Name</dt>
-			<dd>{profile.displayName || '(not set)'}</dd>
-			<dt>Bio</dt>
-			<dd>{profile.summary || '(not set)'}</dd>
-			<dt>Avatar</dt>
-			<dd>{profile.avatarUrl || '(none)'}</dd>
-			<dt>Header</dt>
-			<dd>{profile.headerUrl || '(none)'}</dd>
-			{#each profile.fields || [] as field}
-				<dt>{field.name}</dt>
-				<dd>{field.value}</dd>
-			{/each}
-		</dl>
-		<p class="hint">The username cannot be changed after federation (it would break existing followers).</p>
-	</section>
 </div>
 
 <style>
@@ -163,10 +140,4 @@
 		border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem;
 	}
 	.btn-save:hover { background: #1d4ed8; }
-
-	.current-values { background: white; border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 1rem; }
-	.current-values dl { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; font-size: 0.85rem; }
-	.current-values dt { font-weight: 600; color: var(--color-muted); }
-	.current-values dd { word-break: break-all; }
-	.handle-value { font-weight: 600; color: var(--color-primary); }
 </style>
