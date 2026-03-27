@@ -6,6 +6,7 @@
 
 <svelte:head>
 	{#if botActorUrl}<link rel="me" href={botActorUrl} />{/if}
+	<link rel="alternate" type="application/atom+xml" title="NewsDiff — All Diffs" href="/feed.xml" />
 </svelte:head>
 
 <header>
