@@ -76,8 +76,15 @@ async function syndicate(job: Job<SyndicateJobData>) {
 					isRoot: true, articleUrl: diff.article.url,
 					articleTitle: cardData.articleTitle, feedName: diff.article.feed.name
 				});
+				const rootEmbed: BlueskyEmbed = {
+					type: 'external',
+					uri: diff.article.url,
+					title: cardData.articleTitle,
+					description: `${diff.article.feed.name} — tracked by NewsDiff`
+				};
 				const root = await postToBluesky({
-					handle: bskyHandle!, password: bskyPassword!, text: rootPost.text
+					handle: bskyHandle!, password: bskyPassword!, text: rootPost.text,
+					embed: rootEmbed
 				});
 				rootRef = root;
 				parentRef = root;
