@@ -160,10 +160,16 @@ async function syndicate(job: Job<SyndicateJobData>) {
 	}
 }
 
+// Minimum gap between syndication posts (default: 5 minutes).
+// Prevents flooding followers when many diffs arrive at once.
+// Override with SYNDICATE_RATE_MS env var (milliseconds).
+const SYNDICATE_RATE_MS = Number(process.env.SYNDICATE_RATE_MS) || 5 * 60 * 1000;
+
 export function createSyndicatorWorker() {
 	const worker = new Worker<SyndicateJobData>('syndicate', syndicate, {
 		connection: getRedisConnection(),
-		concurrency: 1
+		concurrency: 1,
+		limiter: { max: 1, duration: SYNDICATE_RATE_MS }
 	});
 
 	worker.on('failed', (job, err) => {
