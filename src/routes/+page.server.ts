@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { diffs, articles, feeds } from '$lib/server/db/schema';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const showBoring = url.searchParams.get('boring') === '1';
@@ -10,9 +10,6 @@ export const load: PageServerLoad = async ({ url }) => {
 	const perPage = 20;
 
 	const conditions = [];
-	if (!showBoring) {
-		conditions.push(eq(diffs.isBoring, false));
-	}
 	if (feedFilter) {
 		const feedArticles = await db
 			.select({ id: articles.id })
@@ -27,7 +24,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		conditions.push(inArray(diffs.articleId, articleIds));
 	}
 
-	// Fetch more diffs than perPage so we can group and still fill the page
+	// Always fetch all diffs (including boring) so grouping is complete.
+	// We filter boring at the display level, not the query level.
 	const recentDiffs = await db.query.diffs.findMany({
 		where: conditions.length ? and(...conditions) : undefined,
 		with: {
@@ -36,8 +34,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			newVersion: true
 		},
 		orderBy: [desc(diffs.createdAt)],
-		limit: 100,
-		offset: (page - 1) * 100
+		limit: 200,
+		offset: (page - 1) * 200
 	});
 
 	// Group by articleId, preserving order of first appearance
@@ -51,16 +49,24 @@ export const load: PageServerLoad = async ({ url }) => {
 		}
 	}
 
-	// Convert to array, limit to perPage groups
+	// Build groups — filter boring at group level unless showBoring is on
 	const groups = [...groupMap.values()]
-		.slice(0, perPage)
-		.map(diffs => ({
-			articleId: diffs[0].articleId,
-			article: diffs[0].article,
-			latestDiff: diffs[0],
-			olderDiffs: diffs.slice(1),
-			totalChanges: diffs.length
-		}));
+		.map(allDiffs => {
+			const visibleDiffs = showBoring ? allDiffs : allDiffs.filter(d => !d.isBoring);
+			if (visibleDiffs.length === 0) return null;
+
+			return {
+				articleId: allDiffs[0].articleId,
+				article: allDiffs[0].article,
+				latestDiff: visibleDiffs[0],
+				olderDiffs: visibleDiffs.slice(1),
+				totalChanges: allDiffs.length,
+				visibleChanges: visibleDiffs.length,
+				boringCount: allDiffs.filter(d => d.isBoring).length
+			};
+		})
+		.filter(Boolean)
+		.slice(0, perPage);
 
 	const allFeeds = await db.select().from(feeds).orderBy(feeds.name);
 

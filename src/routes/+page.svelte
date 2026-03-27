@@ -97,11 +97,16 @@
 				</a>
 
 				<!-- Change count pill + expand toggle -->
-				{#if group.olderDiffs.length > 0}
+				{#if group.olderDiffs.length > 0 || group.totalChanges > group.visibleChanges}
 					<div class="group-actions">
-						<button class="expand-btn" onclick={() => toggleExpand(group.articleId)}>
-							{expanded ? '▾' : '▸'} {group.totalChanges} changes
-						</button>
+						{#if group.olderDiffs.length > 0}
+							<button class="expand-btn" onclick={() => toggleExpand(group.articleId)}>
+								{expanded ? '▾' : '▸'} {group.visibleChanges} changes
+							</button>
+						{/if}
+						{#if group.boringCount > 0}
+							<span class="boring-count">{group.boringCount} boring</span>
+						{/if}
 						<a href="/article/{group.articleId}" class="history-link">Full history</a>
 					</div>
 				{/if}
@@ -162,6 +167,7 @@
 	.group-actions { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 1rem; border-top: 1px solid var(--color-border); background: #f8fafc; font-size: 0.8rem; }
 	.expand-btn { border: none; background: none; cursor: pointer; color: var(--color-primary); font-size: 0.8rem; font-weight: 600; padding: 0; }
 	.expand-btn:hover { text-decoration: underline; }
+	.boring-count { color: var(--color-muted); font-size: 0.75rem; }
 	.history-link { color: var(--color-muted); text-decoration: none; margin-left: auto; }
 	.history-link:hover { color: var(--color-primary); }
 
