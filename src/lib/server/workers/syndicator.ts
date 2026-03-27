@@ -92,11 +92,13 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				}
 			}
 
+			const diffPageUrl = `${origin}/diff/${diff.id}`;
 			const replyPost = buildBlueskyPost({
 				isRoot: false, articleUrl: diff.article.url,
 				articleTitle: cardData.articleTitle, feedName: diff.article.feed.name,
 				titleChanged: diff.titleChanged, contentChanged: diff.contentChanged,
-				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved
+				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved,
+				diffPageUrl
 			});
 
 			const embedType = (process.env.BLUESKY_EMBED_TYPE === 'card') ? 'external' as const : 'image' as const;
@@ -150,6 +152,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 			charsAdded: diff.charsAdded,
 			charsRemoved: diff.charsRemoved,
 			imageUrl,
+			diffPageUrl: `${origin}/diff/${diff.id}`,
 			replyToId: latest?.social_posts.postUri || undefined
 		});
 

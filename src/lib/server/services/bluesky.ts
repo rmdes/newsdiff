@@ -13,6 +13,7 @@ interface PostInput {
 	contentChanged?: boolean;
 	charsAdded?: number;
 	charsRemoved?: number;
+	diffPageUrl?: string;
 }
 
 export function buildBlueskyPost(input: PostInput): { text: string } {
@@ -27,7 +28,11 @@ export function buildBlueskyPost(input: PostInput): { text: string } {
 	const changeDesc = changes.join(' & ') || 'Article updated';
 	const stats = `+${input.charsAdded ?? 0} / -${input.charsRemoved ?? 0} chars`;
 
-	return { text: `${changeDesc} in "${input.articleTitle}" (${input.feedName})\n${stats}\n\n${input.articleUrl}` };
+	const links = input.diffPageUrl
+		? `${input.diffPageUrl}\n${input.articleUrl}`
+		: input.articleUrl;
+
+	return { text: `${changeDesc} in "${input.articleTitle}" (${input.feedName})\n${stats}\n\n${links}` };
 }
 
 export interface BlueskyEmbed {

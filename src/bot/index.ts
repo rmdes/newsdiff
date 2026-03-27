@@ -137,6 +137,7 @@ export async function publishDiff(params: {
 	charsAdded: number;
 	charsRemoved: number;
 	imageUrl: string;
+	diffPageUrl: string;
 	replyToId?: string;
 }): Promise<{ id: string }> {
 	const session = getBotSession();
@@ -152,7 +153,7 @@ export async function publishDiff(params: {
 
 ${stats}
 
-${link(params.articleUrl, params.articleUrl)}`;
+${link("View diff", params.diffPageUrl)} · ${link("Original article", params.articleUrl)}`;
 
 	const attachments = [
 		new Image({
