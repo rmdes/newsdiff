@@ -111,39 +111,12 @@ export async function reloadBotProfile(): Promise<void> {
 	const origin = process.env.BOT_ORIGIN || process.env.ORIGIN || "https://localhost";
 	const username = loadProfileSync().username;
 
-	// Broadcast Update activity to all followers so they refresh the profile
-	try {
-		const ctx = bot.federation.createContext(
-			new Request(origin),
-			undefined
-		);
-		// Create Update activity using Botkit's Fedify v1. We can't use the
-		// Update constructor directly (v1's Object export is broken in CJS),
-		// so we construct an empty Update and clone it with the object set.
-		const actorUri = ctx.getActorUri(username);
-		const actor = await ctx.getActor(username);
-		if (actor) {
-			const { createRequire } = await import("module");
-			const req = createRequire(import.meta.url);
-			const v1Path = req.resolve("@fedify/botkit/package.json").replace("/package.json", "/node_modules/@fedify/fedify/dist/vocab/mod.cjs");
-			const v1 = req(v1Path);
-			// Build Update without object, then use clone() to set it
-			const update = new v1.Update({ actor: actorUri });
-			const withObject = update.clone({ objectIds: [actorUri] });
-			await ctx.sendActivity(
-				{ identifier: username },
-				"followers",
-				withObject,
-				{ preferSharedInbox: true }
-			);
-			console.log('Bot profile reloaded and Update broadcast to followers');
-		} else {
-			console.log('Bot profile reloaded (getActor returned null)');
-		}
-	} catch (err: any) {
-		console.error('Bot profile reloaded but broadcast failed:', err.message);
-		console.error(err.stack);
-	}
+	// NOTE: Broadcasting an Update activity to followers is blocked by a Fedify v1/v2
+	// version mismatch in Botkit (the v1 Object class is broken in CJS exports, and
+	// sendActivity's internal clone/sign also fails). Profile changes will propagate
+	// to remote instances on the next post or when they re-fetch the actor.
+	// This will be resolved when Botkit upgrades to Fedify v2.
+	console.log(`Bot profile reloaded from disk (profile changes propagate on next post)`);
 }
 
 // Get a session for publishing
