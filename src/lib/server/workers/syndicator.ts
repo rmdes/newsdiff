@@ -49,6 +49,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 	// Build the public image URL for ActivityPub (needs full URL, not blob)
 	const origin = process.env.ORIGIN || process.env.BOT_ORIGIN || '';
 	const imageUrl = `${origin}/api/diff/${diff.id}/image.png`;
+	const archiveUrl = diff.newVersion.archiveUrl || undefined;
 
 	// Find existing thread references for this article
 	const existingPosts = await db
@@ -98,7 +99,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				articleTitle: cardData.articleTitle, feedName: diff.article.feed.name,
 				titleChanged: diff.titleChanged, contentChanged: diff.contentChanged,
 				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved,
-				diffPageUrl
+				diffPageUrl, archiveUrl
 			});
 
 			const embedType = (process.env.BLUESKY_EMBED_TYPE === 'card') ? 'external' as const : 'image' as const;
@@ -153,6 +154,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 			charsRemoved: diff.charsRemoved,
 			imageUrl,
 			diffPageUrl: `${origin}/diff/${diff.id}`,
+			archiveUrl,
 			replyToId: latest?.social_posts.postUri || undefined
 		});
 
