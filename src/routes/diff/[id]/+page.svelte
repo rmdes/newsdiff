@@ -110,7 +110,7 @@
 					{/if}
 				</div>
 			{/if}
-			<a href="/api/diff/{diff.id}/image.png" download="diff-{diff.id}.png" class="btn">Download image</a>
+			<a href="/api/diff/{diff.id}/full.png" download="diff-{diff.id}-full.png" class="btn">Download image</a>
 		</div>
 	</header>
 
