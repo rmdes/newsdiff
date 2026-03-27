@@ -30,12 +30,20 @@ export function buildBlueskyPost(input: PostInput): { text: string } {
 	return { text: `${changeDesc} in "${input.articleTitle}" (${input.feedName})\n${stats}\n\n${input.articleUrl}` };
 }
 
+export interface BlueskyEmbed {
+	type: 'image' | 'external';
+	imageBuffer?: Buffer;
+	imageAlt?: string;
+	uri?: string;
+	title?: string;
+	description?: string;
+}
+
 export async function postToBluesky(params: {
 	handle: string;
 	password: string;
 	text: string;
-	imageBuffer?: Buffer;
-	imageAltText?: string;
+	embed?: BlueskyEmbed;
 	replyTo?: { uri: string; cid: string };
 	rootRef?: { uri: string; cid: string };
 }): Promise<{ uri: string; cid: string }> {
@@ -45,17 +53,38 @@ export async function postToBluesky(params: {
 	const rt = new RichText({ text: params.text });
 	await rt.detectFacets(agent);
 
-	let embed: any = undefined;
-	if (params.imageBuffer) {
-		const upload = await agent.uploadBlob(params.imageBuffer, { encoding: 'image/png' });
-		embed = {
-			$type: 'app.bsky.embed.images',
-			images: [{
-				alt: params.imageAltText || '',
-				image: upload.data.blob,
-				aspectRatio: { width: 800, height: 418 }
-			}]
-		};
+	let embedData: any = undefined;
+
+	if (params.embed) {
+		// Upload image blob if provided (used as full image or link card thumbnail)
+		let uploadedBlob: any = undefined;
+		if (params.embed.imageBuffer) {
+			const upload = await agent.uploadBlob(params.embed.imageBuffer, { encoding: 'image/png' });
+			uploadedBlob = upload.data.blob;
+		}
+
+		if (params.embed.type === 'image') {
+			// Full-size image embed with alt text
+			embedData = {
+				$type: 'app.bsky.embed.images',
+				images: [{
+					image: uploadedBlob,
+					alt: params.embed.imageAlt || '',
+					aspectRatio: { width: 800, height: 418 }
+				}]
+			};
+		} else {
+			// Link card embed with optional thumbnail
+			embedData = {
+				$type: 'app.bsky.embed.external',
+				external: {
+					uri: params.embed.uri || '',
+					title: params.embed.title || '',
+					description: params.embed.description || '',
+					thumb: uploadedBlob
+				}
+			};
+		}
 	}
 
 	let reply: any = undefined;
@@ -69,7 +98,7 @@ export async function postToBluesky(params: {
 	const response = await agent.post({
 		text: rt.text,
 		facets: rt.facets,
-		embed,
+		embed: embedData,
 		reply
 	});
 

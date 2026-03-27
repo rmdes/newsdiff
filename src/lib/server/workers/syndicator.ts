@@ -4,7 +4,7 @@ import { db } from '../db';
 import { diffs, socialPosts } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { generateDiffCard, generateAltText } from '../services/card-generator';
-import { postToBluesky, buildBlueskyPost, isBlueskyConfigured } from '../services/bluesky';
+import { postToBluesky, buildBlueskyPost, isBlueskyConfigured, type BlueskyEmbed } from '../services/bluesky';
 import { publishDiff as publishApDiff } from '../../../bot/index';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -99,9 +99,20 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved
 			});
 
+			const embedType = (process.env.BLUESKY_EMBED_TYPE === 'card') ? 'external' as const : 'image' as const;
+			const embed: BlueskyEmbed = embedType === 'image'
+				? { type: 'image', imageBuffer, imageAlt: altText }
+				: {
+					type: 'external',
+					uri: `${origin}/diff/${diff.id}`,
+					title: replyPost.text.split('\n')[0],
+					description: `+${diff.charsAdded} / -${diff.charsRemoved} chars — ${diff.article.feed.name}`,
+					imageBuffer, imageAlt: altText
+				};
+
 			const result = await postToBluesky({
 				handle: bskyHandle!, password: bskyPassword!, text: replyPost.text,
-				imageBuffer, imageAltText: altText, replyTo: parentRef, rootRef
+				embed, replyTo: parentRef, rootRef
 			});
 
 			await db.insert(socialPosts).values({
