@@ -119,6 +119,14 @@ export function getBotSession(): Session<void> {
 	return getBot().getSession(origin);
 }
 
+// Find a published message by its URI in the bot's outbox
+async function findOutboxMessage(session: Session<void>, uri: string) {
+	for await (const msg of session.getOutbox()) {
+		if (msg.id?.href === uri) return msg;
+	}
+	return undefined;
+}
+
 // Publish a diff to the fediverse
 export async function publishDiff(params: {
 	articleTitle: string;
@@ -156,10 +164,21 @@ ${link(params.articleUrl, params.articleUrl)}`;
 		})
 	];
 
-	const message = await session.publish(messageText, {
-		attachments,
-		visibility: "public"
-	});
+	const publishOptions = { attachments, visibility: "public" as const };
+
+	let message;
+	if (params.replyToId) {
+		const parent = await findOutboxMessage(session, params.replyToId);
+		if (parent) {
+			message = await parent.reply(messageText, publishOptions);
+			console.log(`ActivityPub: replied to ${params.replyToId}`);
+		}
+	}
+
+	// Fallback: publish as root post if no parent found
+	if (!message) {
+		message = await session.publish(messageText, publishOptions);
+	}
 
 	return { id: message.id!.href };
 }
