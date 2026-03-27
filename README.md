@@ -6,14 +6,17 @@ Draws inspiration from [newsdiffs](https://github.com/danielsci/newsdiffs), [dif
 
 ## Features
 
-- Monitor any RSS/Atom feed for article changes
+- Monitor any RSS/Atom/JSON Feed for article changes
 - Automatic content extraction via Mozilla Readability (no per-site parsers)
 - Word-level diffs with inline highlighting
-- Visual diff card images for social sharing
-- ActivityPub bot (Fediverse/Mastodon-compatible) via [Botkit](https://botkit.fedify.dev)
-- Bluesky syndication via [@atproto/api](https://github.com/bluesky-social/atproto)
+- Visual diff card images for social sharing + full-height diff image download
+- ActivityPub bot (Fediverse/Mastodon-compatible) via [Botkit](https://botkit.fedify.dev) with threaded replies
+- Bluesky syndication with image embeds, rich link cards, and threaded replies
+- Internet Archive integration — each version archived to the Wayback Machine
+- Atom output feeds: `/feed.xml` (all diffs), `/feed/{feedId}.xml` (per source), `/article/{id}/feed.xml` (per article)
 - Web Share API on mobile, share dropdown on desktop
 - "Boring" diff detection — skips timestamp-only changes and minor numeric updates
+- Rate-limited syndication (configurable, default: 1 post per 5 minutes)
 - OIDC-protected feed management and bot profile editor
 
 ## Tech Stack

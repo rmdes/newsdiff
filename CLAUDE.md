@@ -6,12 +6,14 @@ A modern news article diff tracker that monitors RSS feeds for changes in titles
 
 ## Core Goals
 
-1. **Monitor RSS/Atom feeds** for article changes (titles, content, metadata)
+1. **Monitor RSS/Atom/JSON Feed** for article changes (titles, content, metadata)
 2. **Extract article content** automatically (no per-site parsers)
 3. **Detect and visualize diffs** between article versions
 4. **Web frontend** as the primary interface for browsing and viewing diffs
-5. **Social syndication** — post diff summaries/images to Bluesky and Mastodon
-6. **No Twitter/X** — explicitly excluded from scope
+5. **Social syndication** — post diff summaries/images to Bluesky and ActivityPub (Fediverse)
+6. **Internet Archive** — archive each version to the Wayback Machine
+7. **Atom output feeds** — subscribe to diffs via RSS reader
+8. **No Twitter/X** — explicitly excluded from scope
 
 ## Tech Stack
 
@@ -21,14 +23,14 @@ A modern news article diff tracker that monitors RSS feeds for changes in titles
 | Database | PostgreSQL (Cloudron addon) |
 | ORM | Drizzle |
 | Job Queue | BullMQ (Redis-backed, Cloudron addon) |
-| RSS Parsing | rss-parser |
+| Feed Parsing | rss-parser + JSON Feed |
 | Content Extraction | @mozilla/readability + linkedom |
 | Diffing | diff (jsdiff) — word-level |
 | Bluesky SDK | @atproto/api |
-| Mastodon SDK | masto |
+| ActivityPub | @fedify/botkit |
 | Diff Card Images | satori + sharp |
 | Runtime | Node.js 22 |
-| Deployment | Cloudron (Postgres + Redis + localstorage addons) |
+| Deployment | Cloudron or Docker Compose |
 
 ## Commands
 
