@@ -10,6 +10,7 @@
 </svelte:head>
 
 <header>
+	<img src="/header.png" alt="NewsDiff — tracking how news changes after publication" class="header-banner" />
 	<nav class="container">
 		<a href="/" class="logo" data-sveltekit-preload-data="hover">NewsDiff</a>
 		<div class="nav-links">
@@ -33,8 +34,9 @@
 </footer>
 
 <style>
-	header { border-bottom: 1px solid var(--color-border); padding: 1rem 0; margin-bottom: 2rem; }
-	nav { display: flex; gap: 1.5rem; align-items: center; }
+	header { border-bottom: 1px solid var(--color-border); margin-bottom: 2rem; }
+	.header-banner { width: 100%; height: auto; display: block; }
+	nav { display: flex; gap: 1.5rem; align-items: center; padding: 1rem 0; }
 	.logo { font-weight: 700; font-size: 1.25rem; text-decoration: none; color: var(--color-text); }
 	.logo:hover { color: var(--color-primary); }
 	.nav-links { display: flex; gap: 1rem; margin-left: auto; }

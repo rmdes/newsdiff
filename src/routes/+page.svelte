@@ -34,8 +34,6 @@
 	<title>NewsDiff — Recent Changes</title>
 </svelte:head>
 
-<img src="/header.png" alt="NewsDiff — tracking how news changes after publication" class="hero-img" />
-
 <h1>Recent Changes</h1>
 
 <div class="filters">
@@ -138,7 +136,6 @@
 {/if}
 
 <style>
-	.hero-img { width: 100%; max-width: 720px; height: auto; border-radius: 0.5rem; border: 1px solid var(--color-border); margin-bottom: 1.5rem; }
 	.filters { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; }
 	.feed-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
 	.feed-tabs a { padding: 0.2rem 0.6rem; border-radius: 1rem; text-decoration: none; background: var(--color-border); color: var(--color-text); font-size: 0.8rem; transition: background 0.15s; }
