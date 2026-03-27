@@ -45,7 +45,7 @@ async function processArticle(articleUrl: string, feedId: number) {
 	// Use the final URL after redirects (e.g., http:// -> https://)
 	const finalUrl = response.url || articleUrl;
 
-	const extracted = extractArticle(html, finalUrl);
+	const extracted = await extractArticle(html, finalUrl);
 	if (!extracted) return;
 
 	const contentHash = computeHash(extracted.content);

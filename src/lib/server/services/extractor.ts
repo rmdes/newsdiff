@@ -1,5 +1,5 @@
 import { Readability } from '@mozilla/readability';
-import { parseHTML } from 'linkedom';
+import { JSDOM } from 'jsdom';
 import { createHash } from 'node:crypto';
 
 export interface ExtractedArticle {
@@ -8,20 +8,61 @@ export interface ExtractedArticle {
 	content: string;
 }
 
-export function extractArticle(html: string, url: string): ExtractedArticle | null {
-	const { document } = parseHTML(html);
-	const base = document.createElement('base');
-	base.setAttribute('href', url);
-	document.head.appendChild(base);
+/**
+ * Detect content that looks like a feed listing rather than an article.
+ * Patterns: repeating "X ago" + "N mins read" lines, many short headline-like lines.
+ */
+function looksLikeFeedListing(text: string): boolean {
+	const lines = text.split('\n').filter(l => l.trim());
+	if (lines.length < 5) return false;
 
-	const reader = new Readability(document);
+	const timeAgoLines = lines.filter(l => /^\d+\s*(mins?|hrs?|hours?|days?|weeks?)\s*(ago|read)/i.test(l.trim()));
+	const readTimeLines = lines.filter(l => /^\d+\s*mins?\s*read$/i.test(l.trim()));
+
+	// If more than 20% of lines are time/read patterns, it's a feed listing
+	const noiseRatio = (timeAgoLines.length + readTimeLines.length) / lines.length;
+	return noiseRatio > 0.15;
+}
+
+/**
+ * Extract article using Defuddle (primary) with Readability fallback.
+ */
+export async function extractArticle(html: string, url: string): Promise<ExtractedArticle | null> {
+	// Try Defuddle first
+	try {
+		const { Defuddle } = await import('defuddle/node');
+		const result = await Defuddle(html, url);
+
+		if (result?.content) {
+			const content = htmlToStructuredText(result.content);
+			if (content && content.length >= 50 && !looksLikeFeedListing(content)) {
+				return {
+					title: result.title || '',
+					byline: result.author || null,
+					content
+				};
+			}
+		}
+	} catch (err: any) {
+		// Defuddle failed — fall through to Readability
+	}
+
+	// Fallback: Readability
+	return extractWithReadability(html, url);
+}
+
+function extractWithReadability(html: string, url: string): ExtractedArticle | null {
+	const dom = new JSDOM(html, { url });
+	const reader = new Readability(dom.window.document);
 	const article = reader.parse();
 
 	if (!article || !article.content) return null;
 
-	// Use the cleaned HTML and convert to structured plain text
 	const content = htmlToStructuredText(article.content);
 	if (!content || content.length < 50) return null;
+
+	// Reject feed listings even from Readability
+	if (looksLikeFeedListing(content)) return null;
 
 	return {
 		title: article.title || '',
@@ -33,24 +74,19 @@ export function extractArticle(html: string, url: string): ExtractedArticle | nu
 /**
  * Convert cleaned HTML to structured plain text.
  * Preserves paragraph breaks, strips images/nav/scripts.
- * Much better than raw textContent which loses all structure.
  */
 function htmlToStructuredText(html: string): string {
-	// Parse the cleaned HTML
-	const { document } = parseHTML(`<div>${html}</div>`);
-	const root = document.querySelector('div')!;
+	const dom = new JSDOM(`<div>${html}</div>`);
+	const root = dom.window.document.querySelector('div')!;
 
-	// Remove elements that don't contribute meaningful text
 	for (const el of root.querySelectorAll('script, style, nav, figure, figcaption, img, video, audio, iframe, svg, button, input, form, aside')) {
 		el.remove();
 	}
 
-	// Walk block elements and extract text with structure
 	const blocks: string[] = [];
 
 	function processNode(node: any) {
 		if (node.nodeType === 3) {
-			// Text node
 			return node.textContent || '';
 		}
 
@@ -58,10 +94,8 @@ function htmlToStructuredText(html: string): string {
 
 		const tag = node.tagName?.toLowerCase() || '';
 
-		// Skip hidden elements
 		if (tag === 'script' || tag === 'style') return '';
 
-		// Block-level elements get their own paragraph
 		const isBlock = [
 			'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 			'li', 'blockquote', 'pre', 'tr', 'dt', 'dd',
@@ -87,7 +121,6 @@ function htmlToStructuredText(html: string): string {
 
 	processNode(root);
 
-	// Join blocks with double newlines, then clean up
 	return blocks
 		.filter(b => b.length > 0)
 		.join('\n\n')
