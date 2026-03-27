@@ -10,9 +10,11 @@
 </svelte:head>
 
 <header>
-	<img src="/header.png" alt="NewsDiff — tracking how news changes after publication" class="header-banner" />
 	<nav class="container">
-		<a href="/" class="logo" data-sveltekit-preload-data="hover">NewsDiff</a>
+		<a href="/" class="logo" data-sveltekit-preload-data="hover">
+			<img src="/logo.png" alt="NewsDiff" class="logo-img" />
+			NewsDiff
+		</a>
 		<div class="nav-links">
 			<a href="/" data-sveltekit-preload-data="hover">Home</a>
 			<a href="/about" data-sveltekit-preload-data="hover">About</a>
@@ -35,10 +37,10 @@
 
 <style>
 	header { border-bottom: 1px solid var(--color-border); margin-bottom: 2rem; }
-	.header-banner { width: 100%; height: auto; display: block; }
 	nav { display: flex; gap: 1.5rem; align-items: center; padding: 1rem 0; }
-	.logo { font-weight: 700; font-size: 1.25rem; text-decoration: none; color: var(--color-text); }
+	.logo { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.25rem; text-decoration: none; color: var(--color-text); }
 	.logo:hover { color: var(--color-primary); }
+	.logo-img { width: 32px; height: 32px; border-radius: 4px; }
 	.nav-links { display: flex; gap: 1rem; margin-left: auto; }
 	.nav-links a { color: var(--color-muted); text-decoration: none; }
 	.nav-links a:hover { color: var(--color-primary); }
