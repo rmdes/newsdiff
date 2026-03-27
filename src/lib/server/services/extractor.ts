@@ -13,15 +13,20 @@ export interface ExtractedArticle {
  * Patterns: repeating "X ago" + "N mins read" lines, many short headline-like lines.
  */
 function looksLikeFeedListing(text: string): boolean {
-	const lines = text.split('\n').filter(l => l.trim());
+	const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 	if (lines.length < 5) return false;
 
-	const timeAgoLines = lines.filter(l => /^\d+\s*(mins?|hrs?|hours?|days?|weeks?)\s*(ago|read)/i.test(l.trim()));
-	const readTimeLines = lines.filter(l => /^\d+\s*mins?\s*read$/i.test(l.trim()));
+	const timeAgoLines = lines.filter(l =>
+		/^\d+\s*(mins?|hrs?|hours?|days?|weeks?|months?)\s*(ago)?$/i.test(l) ||
+		/^\d+\s*mins?\s*read$/i.test(l) ||
+		/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2}$/i.test(l)
+	);
 
-	// If more than 20% of lines are time/read patterns, it's a feed listing
-	const noiseRatio = (timeAgoLines.length + readTimeLines.length) / lines.length;
-	return noiseRatio > 0.15;
+	// 3+ time/read lines is a strong signal of a feed listing
+	if (timeAgoLines.length >= 3) return true;
+
+	const noiseRatio = timeAgoLines.length / lines.length;
+	return noiseRatio > 0.1;
 }
 
 /**
