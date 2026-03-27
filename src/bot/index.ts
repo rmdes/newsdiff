@@ -1,12 +1,4 @@
 import { createBot, text, link, Image, parseSemVer, type Session } from "@fedify/botkit";
-// Import Update from Botkit's own Fedify (v1), not our @fedify/vocab (v2).
-// The actor from ctx.getActor() is a v1 Service — v2's Update rejects it.
-import { createRequire } from "module";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-const _botkitDir = dirname(fileURLToPath(import.meta.resolve("@fedify/botkit")));
-const _botkitRequire = createRequire(_botkitDir + "/");
-const { Update } = _botkitRequire("@fedify/fedify/vocab") as { Update: any };
 import { RedisKvStore, RedisMessageQueue } from "@fedify/redis";
 import Redis from "ioredis";
 import { createServer } from "node:http";
@@ -128,13 +120,16 @@ export async function reloadBotProfile(): Promise<void> {
 		const actorUri = ctx.getActorUri(username);
 		const actor = await ctx.getActor(username);
 		if (actor) {
+			// Dynamically import Update from Botkit's nested Fedify v1 at runtime
+			// (static import gets bundled by Vite and resolves to @fedify/vocab v2)
+			const { createRequire } = await import("module");
+			const botkitPkg = createRequire(import.meta.url).resolve("@fedify/botkit");
+			const fedifyVocab = createRequire(botkitPkg)("@fedify/fedify/vocab");
+			const update = new fedifyVocab.Update({ actor: actorUri, object: actor });
 			await ctx.sendActivity(
 				{ identifier: username },
 				"followers",
-				new Update({
-					actor: actorUri,
-					object: actor,
-				}),
+				update,
 				{ preferSharedInbox: true }
 			);
 			console.log('Bot profile reloaded and Update broadcast to followers');
