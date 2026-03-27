@@ -1,6 +1,5 @@
 import type { Actions, PageServerLoad } from './$types';
-import { fail } from '@sveltejs/kit';
-import { loadBotProfile, saveBotProfile, type BotProfile } from '$lib/server/bot-profile';
+import { loadBotProfile, saveBotProfile } from '$lib/server/bot-profile';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -18,9 +17,12 @@ export const actions = {
 
 		const profile = await loadBotProfile();
 
-		// Update text fields
-		profile.displayName = formData.get('displayName')?.toString().trim() || profile.displayName;
-		profile.summary = formData.get('summary')?.toString().trim() || profile.summary;
+		// Update text fields — use formData values directly (allow clearing)
+		const displayName = formData.get('displayName')?.toString().trim();
+		const summary = formData.get('summary')?.toString().trim();
+
+		if (displayName !== undefined) profile.displayName = displayName || profile.displayName;
+		if (summary !== undefined) profile.summary = summary || profile.summary;
 
 		// Handle avatar upload
 		const avatar = formData.get('avatar') as File | null;
@@ -59,20 +61,21 @@ export const actions = {
 
 		await saveBotProfile(profile);
 
-		return { success: true, message: 'Profile saved. Changes take effect on next app restart.' };
+		// Return the saved profile so the page updates immediately
+		return { success: true, message: 'Profile saved. Restart the app to apply changes.', profile };
 	},
 
 	removeAvatar: async () => {
 		const profile = await loadBotProfile();
 		profile.avatarUrl = '';
 		await saveBotProfile(profile);
-		return { success: true };
+		return { success: true, profile };
 	},
 
 	removeHeader: async () => {
 		const profile = await loadBotProfile();
 		profile.headerUrl = '';
 		await saveBotProfile(profile);
-		return { success: true };
+		return { success: true, profile };
 	}
 } satisfies Actions;
