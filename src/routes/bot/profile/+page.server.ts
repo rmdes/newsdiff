@@ -3,7 +3,8 @@ import { fail } from '@sveltejs/kit';
 import { loadBotProfile, saveBotProfile } from '$lib/server/bot-profile';
 import { reloadBotProfile, getBotSession } from '../../../bot/index';
 import { db } from '$lib/server/db';
-import { socialPosts } from '$lib/server/db/schema';
+import { diffs, socialPosts } from '$lib/server/db/schema';
+import { getRedisConnection } from '$lib/server/workers/connection';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -106,14 +107,31 @@ export const actions = {
 	},
 
 	deleteAllPosts: async () => {
-		// Run in background — iterating the outbox is too slow for an HTTP request
 		const session = getBotSession();
 
-		// Clear DB immediately so new syndication doesn't reference old posts
+		// 1. Clear social_posts DB table
 		const dbResult = await db.delete(socialPosts).returning({ id: socialPosts.id });
 		console.log(`Cleared ${dbResult.length} social_posts DB records`);
 
-		// Fire-and-forget the AP delete loop
+		// 2. Clear all diffs so the counter resets
+		const diffResult = await db.delete(diffs).returning({ id: diffs.id });
+		console.log(`Cleared ${diffResult.length} diffs DB records`);
+
+		// 3. Flush the BullMQ syndicate queue from Redis
+		let queueKeysCleared = 0;
+		try {
+			const redis = getRedisConnection();
+			const keys = await redis.keys('bull:syndicate:*');
+			if (keys.length > 0) {
+				await redis.del(...keys);
+			}
+			queueKeysCleared = keys.length;
+			console.log(`Cleared ${queueKeysCleared} syndicate queue keys from Redis`);
+		} catch (err: any) {
+			console.error('Failed to clear syndicate queue:', err.message);
+		}
+
+		// 4. Fire-and-forget the AP outbox delete loop
 		(async () => {
 			let deleted = 0;
 			let failed = 0;
@@ -134,6 +152,9 @@ export const actions = {
 			console.log(`AP post deletion complete: ${deleted} deleted, ${failed} failed`);
 		})();
 
-		return { success: true, message: `Cleared ${dbResult.length} DB records. AP post deletion running in background — check logs for progress.` };
+		return {
+			success: true,
+			message: `Cleared ${dbResult.length} social posts, ${diffResult.length} diffs, ${queueKeysCleared} queued jobs. AP deletion running in background.`
+		};
 	}
 } satisfies Actions;
