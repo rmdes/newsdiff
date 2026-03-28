@@ -4,10 +4,17 @@ import { diffs } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { generateFullDiffImage } from '$lib/server/services/card-generator';
+import { rateLimit } from '$lib/server/rate-limit';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, getClientAddress }) => {
 	const id = Number(params.id);
 	if (isNaN(id)) throw error(404, 'Not found');
+
+	// Rate limit: 10 full-image requests per minute per IP (more expensive, no disk cache)
+	const clientIp = getClientAddress();
+	if (!rateLimit(`fullimg:${clientIp}`, 10, 60_000)) {
+		throw error(429, 'Too many image generation requests');
+	}
 
 	const diff = await db.query.diffs.findFirst({
 		where: eq(diffs.id, id),

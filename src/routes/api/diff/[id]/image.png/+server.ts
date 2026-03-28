@@ -4,6 +4,8 @@ import { diffs } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import { generateDiffCard } from '$lib/server/services/card-generator';
+import { parseSessionCookie } from '$lib/server/auth';
+import { rateLimit } from '$lib/server/rate-limit';
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -18,14 +20,15 @@ async function fileExists(path: string): Promise<boolean> {
 	}
 }
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, request, getClientAddress }) => {
 	const id = Number(params.id);
 	if (isNaN(id)) throw error(404, 'Not found');
 
 	const cachedPath = join(IMAGE_DIR, `diff-${id}.png`);
 
-	// Serve from cache (skip if ?regenerate is set)
-	const regenerate = url.searchParams.has('regenerate');
+	// Only authenticated users can force regeneration
+	const regenerate = url.searchParams.has('regenerate')
+		&& Boolean(parseSessionCookie(request.headers.get('cookie')));
 	if (!regenerate && await fileExists(cachedPath)) {
 		const buffer = await readFile(cachedPath);
 		return new Response(buffer, {
@@ -34,6 +37,12 @@ export const GET: RequestHandler = async ({ params, url }) => {
 				'Cache-Control': 'public, max-age=31536000, immutable'
 			}
 		});
+	}
+
+	// Rate limit image generation: 20 uncached requests per minute per IP
+	const clientIp = getClientAddress();
+	if (!rateLimit(`img:${clientIp}`, 20, 60_000)) {
+		throw error(429, 'Too many image generation requests');
 	}
 
 	// Generate the image
