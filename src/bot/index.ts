@@ -111,11 +111,10 @@ export async function reloadBotProfile(): Promise<void> {
 	const origin = process.env.BOT_ORIGIN || process.env.ORIGIN || "https://localhost";
 	const username = loadProfileSync().username;
 
-	// NOTE: Broadcasting an Update activity to followers is blocked by a Fedify v1/v2
-	// version mismatch in Botkit (the v1 Object class is broken in CJS exports, and
-	// sendActivity's internal clone/sign also fails). Profile changes will propagate
-	// to remote instances on the next post or when they re-fetch the actor.
-	// This will be resolved when Botkit upgrades to Fedify v2.
+	// TODO: Replace with session.republishProfile() when Botkit ships it.
+	// See: https://github.com/fedify-dev/botkit/issues/18
+	// Currently blocked by Fedify v1/v2 version mismatch in Botkit.
+	// Profile changes propagate on next post or when remote instances re-fetch the actor.
 	console.log(`Bot profile reloaded from disk (profile changes propagate on next post)`);
 }
 
