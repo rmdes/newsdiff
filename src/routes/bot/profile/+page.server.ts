@@ -106,23 +106,34 @@ export const actions = {
 	},
 
 	deleteAllPosts: async () => {
+		// Run in background — iterating the outbox is too slow for an HTTP request
 		const session = getBotSession();
 
-		let deleted = 0;
-		let failed = 0;
-		for await (const msg of session.getOutbox()) {
-			try {
-				await msg.delete();
-				deleted++;
-				await new Promise(r => setTimeout(r, 200));
-			} catch {
-				failed++;
-			}
-		}
-
+		// Clear DB immediately so new syndication doesn't reference old posts
 		const dbResult = await db.delete(socialPosts).returning({ id: socialPosts.id });
+		console.log(`Cleared ${dbResult.length} social_posts DB records`);
 
-		console.log(`Deleted ${deleted} AP posts (${failed} failed), cleared ${dbResult.length} DB records`);
-		return { success: true, message: `Deleted ${deleted} posts from fediverse, ${dbResult.length} records from database.` };
+		// Fire-and-forget the AP delete loop
+		(async () => {
+			let deleted = 0;
+			let failed = 0;
+			try {
+				for await (const msg of session.getOutbox()) {
+					try {
+						await msg.delete();
+						deleted++;
+						if (deleted % 25 === 0) console.log(`Deleting AP posts: ${deleted} so far...`);
+						await new Promise(r => setTimeout(r, 200));
+					} catch {
+						failed++;
+					}
+				}
+			} catch (err: any) {
+				console.error('Delete loop error:', err.message);
+			}
+			console.log(`AP post deletion complete: ${deleted} deleted, ${failed} failed`);
+		})();
+
+		return { success: true, message: `Cleared ${dbResult.length} DB records. AP post deletion running in background — check logs for progress.` };
 	}
 } satisfies Actions;

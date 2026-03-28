@@ -99,6 +99,9 @@
 
 	<section class="danger-zone">
 		<h2>Danger Zone</h2>
+		{#if form?.message && !form?.profile}
+			<p class="notice" style="background: var(--color-del-bg); color: var(--color-del-text);">{form.message}</p>
+		{/if}
 		<form method="POST" action="?/deleteAllPosts" onsubmit={(e) => {
 			if (!confirm('Delete ALL posts from the fediverse? This sends Delete activities to all federated instances and cannot be undone.')) {
 				e.preventDefault();
