@@ -89,7 +89,33 @@ export async function parseFeedItems(content: string): Promise<FeedItem[]> {
 		}));
 }
 
-export async function fetchAndParseFeed(feedUrl: string): Promise<{ siteName: string; items: FeedItem[] }> {
+/**
+ * Discover WebSub hub URL from feed content.
+ * Checks JSON Feed `hubs` array and RSS/Atom `<link rel="hub">`.
+ */
+export function discoverHub(content: string): string | null {
+	// JSON Feed: hubs array
+	try {
+		const json = JSON.parse(content);
+		if (isJsonFeed(json) && Array.isArray(json.hubs)) {
+			const websubHub = json.hubs.find((h: any) => h.type === 'WebSub' && h.url);
+			if (websubHub) return websubHub.url;
+		}
+	} catch { /* not JSON */ }
+
+	// RSS/Atom: <link rel="hub" href="...">
+	const hubMatch = content.match(/<link[^>]+rel=["']hub["'][^>]+href=["']([^"']+)["']/i)
+		|| content.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["']hub["']/i);
+	if (hubMatch) return hubMatch[1];
+
+	// Atom: <link href="..." rel="hub" />
+	const atomMatch = content.match(/<atom:link[^>]+rel=["']hub["'][^>]+href=["']([^"']+)["']/i);
+	if (atomMatch) return atomMatch[1];
+
+	return null;
+}
+
+export async function fetchAndParseFeed(feedUrl: string): Promise<{ siteName: string; items: FeedItem[]; hubUrl: string | null }> {
 	// Fetch raw content so we can detect JSON Feed vs RSS/Atom
 	const response = await fetch(feedUrl, {
 		headers: {
@@ -104,6 +130,7 @@ export async function fetchAndParseFeed(feedUrl: string): Promise<{ siteName: st
 	}
 
 	const text = await readWithLimit(response);
+	const hubUrl = discoverHub(text);
 
 	// Try JSON Feed
 	try {
@@ -111,7 +138,8 @@ export async function fetchAndParseFeed(feedUrl: string): Promise<{ siteName: st
 		if (isJsonFeed(json)) {
 			return {
 				siteName: json.title || '',
-				items: parseJsonFeedItems(json)
+				items: parseJsonFeedItems(json),
+				hubUrl
 			};
 		}
 	} catch {
@@ -126,5 +154,5 @@ export async function fetchAndParseFeed(feedUrl: string): Promise<{ siteName: st
 			url: item.link!,
 			publishedAt: item.pubDate ? new Date(item.pubDate) : null
 		}));
-	return { siteName: feed.title || '', items };
+	return { siteName: feed.title || '', items, hubUrl };
 }

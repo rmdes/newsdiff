@@ -170,16 +170,33 @@ async function pollFeed(job: Job<FeedPollJobData>) {
 	if (!feed || !feed.isActive) return;
 
 	try {
-		const { siteName, items } = await fetchAndParseFeed(feedUrl);
+		const { siteName, items, hubUrl } = await fetchAndParseFeed(feedUrl);
 
-		// Feed fetch succeeded — reset error counter
-		await db.update(feeds).set({
+		// Feed fetch succeeded — reset error counter, store hub if discovered
+		const feedUpdates: Record<string, any> = {
 			siteName: siteName || feed.siteName,
 			lastError: null,
 			lastErrorAt: null,
 			consecutiveErrors: 0,
 			lastSuccessAt: new Date()
-		}).where(eq(feeds.id, feedId));
+		};
+
+		// WebSub: if a hub was discovered and we're not already subscribed, subscribe
+		if (hubUrl && hubUrl !== feed.hubUrl) {
+			try {
+				const { subscribeToHub } = await import('../services/websub');
+				const origin = process.env.ORIGIN || process.env.BOT_ORIGIN || '';
+				const callbackUrl = `${origin}/api/websub/${feedId}`;
+				const { secret } = await subscribeToHub({ hubUrl, feedUrl, callbackUrl });
+				feedUpdates.hubUrl = hubUrl;
+				feedUpdates.hubSecret = secret;
+				console.log(`WebSub: subscribed feed ${feedId} (${feed.name}) to hub ${hubUrl}`);
+			} catch (err: any) {
+				console.warn(`WebSub: failed to subscribe feed ${feedId}: ${err.message}`);
+			}
+		}
+
+		await db.update(feeds).set(feedUpdates).where(eq(feeds.id, feedId));
 
 		let articleErrors = 0;
 		for (const item of items) {

@@ -12,6 +12,9 @@ export const feeds = pgTable('feeds', {
 	lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
 	consecutiveErrors: integer('consecutive_errors').notNull().default(0),
 	lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+	hubUrl: text('hub_url'),
+	hubSecret: text('hub_secret'),
+	hubLeaseExpiry: timestamp('hub_lease_expiry', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 
