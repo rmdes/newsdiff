@@ -1,7 +1,9 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 import { loadBotProfile, saveBotProfile } from '$lib/server/bot-profile';
-import { reloadBotProfile } from '../../../bot/index';
+import { reloadBotProfile, getBotSession } from '../../../bot/index';
+import { db } from '$lib/server/db';
+import { socialPosts } from '$lib/server/db/schema';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -101,5 +103,26 @@ export const actions = {
 		await saveBotProfile(profile);
 		try { await reloadBotProfile(); } catch {}
 		return { success: true, profile };
+	},
+
+	deleteAllPosts: async () => {
+		const session = getBotSession();
+
+		let deleted = 0;
+		let failed = 0;
+		for await (const msg of session.getOutbox()) {
+			try {
+				await msg.delete();
+				deleted++;
+				await new Promise(r => setTimeout(r, 200));
+			} catch {
+				failed++;
+			}
+		}
+
+		const dbResult = await db.delete(socialPosts).returning({ id: socialPosts.id });
+
+		console.log(`Deleted ${deleted} AP posts (${failed} failed), cleared ${dbResult.length} DB records`);
+		return { success: true, message: `Deleted ${deleted} posts from fediverse, ${dbResult.length} records from database.` };
 	}
 } satisfies Actions;

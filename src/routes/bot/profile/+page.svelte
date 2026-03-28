@@ -96,6 +96,18 @@
 			<button type="submit" class="btn-save">Save Profile</button>
 		</div>
 	</form>
+
+	<section class="danger-zone">
+		<h2>Danger Zone</h2>
+		<form method="POST" action="?/deleteAllPosts" onsubmit={(e) => {
+			if (!confirm('Delete ALL posts from the fediverse? This sends Delete activities to all federated instances and cannot be undone.')) {
+				e.preventDefault();
+			}
+		}}>
+			<p>Delete all posts from the bot's fediverse outbox and clear the social posts database. This cannot be undone.</p>
+			<button type="submit" class="btn-danger">Delete all posts</button>
+		</form>
+	</section>
 </div>
 
 <style>
@@ -140,4 +152,13 @@
 		border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem;
 	}
 	.btn-save:hover { background: #1d4ed8; }
+
+	.danger-zone { margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--color-del-bg); }
+	.danger-zone h2 { color: var(--color-del-text); border-bottom-color: var(--color-del-bg); }
+	.danger-zone p { font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1rem; }
+	.btn-danger {
+		padding: 0.5rem 1.5rem; background: white; color: var(--color-del-text);
+		border: 1px solid var(--color-del-text); border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem;
+	}
+	.btn-danger:hover { background: var(--color-del-bg); }
 </style>
