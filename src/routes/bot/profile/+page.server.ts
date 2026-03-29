@@ -34,7 +34,25 @@ async function processUpload(file: File, outputName: string): Promise<string | {
 
 export const load: PageServerLoad = async () => {
 	const profile = await loadBotProfile();
-	return { profile };
+
+	// Load a recent non-boring diff for the post preview
+	const recentDiff = await db.query.diffs.findFirst({
+		where: eq(diffs.isBoring, false),
+		with: { article: { with: { feed: true } }, newVersion: true },
+		orderBy: (d, { desc }) => [desc(d.id)]
+	});
+
+	const previewData = recentDiff ? {
+		title: recentDiff.newVersion.title || 'Untitled Article',
+		feedName: recentDiff.article.feed.name,
+		titleChanged: recentDiff.titleChanged,
+		contentChanged: recentDiff.contentChanged,
+		charsAdded: recentDiff.charsAdded,
+		charsRemoved: recentDiff.charsRemoved,
+		diffId: recentDiff.id
+	} : null;
+
+	return { profile, previewData };
 };
 
 export const actions = {

@@ -10,6 +10,21 @@
 	let suffixInput = $state(data.profile.postSuffix || '');
 	let bskyBudget = $derived(BSKY_LIMIT - BSKY_OVERHEAD - prefixInput.length - suffixInput.length);
 
+	// Live preview using a real diff
+	const preview = data.previewData;
+	let previewText = $derived(() => {
+		if (!preview) return '';
+		const changes = [
+			preview.titleChanged ? 'Headline changed' : '',
+			preview.contentChanged ? 'Content changed' : ''
+		].filter(Boolean).join(' & ') || 'Article updated';
+		const stats = `+${preview.charsAdded} / -${preview.charsRemoved} chars`;
+		const prefix = prefixInput ? `${prefixInput} ` : '';
+		const suffix = suffixInput ? `\n\n${suffixInput}` : '';
+		return `${prefix}${changes} in "${preview.title}" (${preview.feedName})\n${stats}\n\nhttps://diff.example.com/diff/${preview.diffId}\nhttps://example.com/article${suffix}`;
+	});
+	let previewCharCount = $derived(previewText().length);
+
 	let fields = $derived((() => {
 		const f = [...(profile.fields || [])];
 		while (f.length < 4) f.push({ name: '', value: '' });
@@ -120,6 +135,27 @@
 					— title may be truncated
 				{/if}
 			</div>
+
+			{#if preview}
+				<div class="preview-cards">
+					<div class="preview-card preview-mastodon">
+						<div class="preview-header">
+							<span class="preview-icon">🐘</span>
+							<span class="preview-label">ActivityPub preview</span>
+						</div>
+						<div class="preview-body">{previewText()}</div>
+						<div class="preview-meta">{previewCharCount} chars (no limit)</div>
+					</div>
+					<div class="preview-card preview-bluesky">
+						<div class="preview-header">
+							<span class="preview-icon">🦋</span>
+							<span class="preview-label">Bluesky preview</span>
+						</div>
+						<div class="preview-body" class:preview-truncated={previewCharCount > 300}>{previewText().slice(0, 300)}{#if previewCharCount > 300}...{/if}</div>
+						<div class="preview-meta" class:budget-over={previewCharCount > 300}>{Math.min(previewCharCount, 300)}/300 chars</div>
+					</div>
+				</div>
+			{/if}
 		</section>
 
 		<div class="actions">
@@ -189,6 +225,16 @@
 	.budget { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; padding: 0.4rem 0.6rem; background: #f5f5f5; border-radius: 0.25rem; }
 	.budget-warn { color: #92400e; background: #fef3c7; }
 	.budget-over { color: var(--color-del-text); background: var(--color-del-bg); }
+
+	.preview-cards { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+	.preview-card { flex: 1; min-width: 260px; border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden; background: white; }
+	.preview-header { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; background: #f8f8f8; border-bottom: 1px solid var(--color-border); font-size: 0.8rem; font-weight: 600; color: var(--color-muted); }
+	.preview-icon { font-size: 1rem; }
+	.preview-body { padding: 0.75rem; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--color-text); }
+	.preview-truncated { color: var(--color-del-text); }
+	.preview-meta { padding: 0.4rem 0.75rem; border-top: 1px solid var(--color-border); font-size: 0.75rem; color: var(--color-muted); background: #fafafa; }
+	.preview-mastodon { border-left: 3px solid #6364ff; }
+	.preview-bluesky { border-left: 3px solid #0085ff; }
 
 	.danger-zone { margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--color-del-bg); }
 	.danger-zone h2 { color: var(--color-del-text); border-bottom-color: var(--color-del-bg); }

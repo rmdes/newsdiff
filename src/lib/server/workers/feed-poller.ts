@@ -61,7 +61,7 @@ async function processArticle(articleUrl: string, feedId: number) {
 		.values({ feedId, url: finalUrl })
 		.onConflictDoUpdate({
 			target: articles.url,
-			set: { feedId }
+			set: { lastCheckedAt: new Date() }
 		})
 		.returning();
 
