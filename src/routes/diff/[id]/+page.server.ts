@@ -29,15 +29,30 @@ export const load: PageServerLoad = async ({ params }) => {
 		orderBy: (d, { asc }) => [asc(d.id)]
 	});
 
-	// Find the AP post URI for this diff
+	// Find syndicated posts for this diff
 	const apPost = await db.query.socialPosts.findFirst({
 		where: and(eq(socialPosts.diffId, id), eq(socialPosts.platform, 'activitypub'))
 	});
+
+	const bskyPost = await db.query.socialPosts.findFirst({
+		where: and(eq(socialPosts.diffId, id), eq(socialPosts.platform, 'bluesky'))
+	});
+
+	// Convert Bluesky post URI (at://) to bsky.app URL
+	let bskyPostUrl: string | null = null;
+	if (bskyPost?.postUri) {
+		// URI format: at://did:plc:xxx/app.bsky.feed.post/yyy
+		const match = bskyPost.postUri.match(/at:\/\/(did:[^/]+)\/app\.bsky\.feed\.post\/(.+)/);
+		if (match) {
+			bskyPostUrl = `https://bsky.app/profile/${match[1]}/post/${match[2]}`;
+		}
+	}
 
 	return {
 		diff,
 		prevDiffId: prevDiff?.id ?? null,
 		nextDiffId: nextDiff?.id ?? null,
-		apPostUri: apPost?.postUri ?? null
+		apPostUri: apPost?.postUri ?? null,
+		bskyPostUrl
 	};
 };

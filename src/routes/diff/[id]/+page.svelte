@@ -2,7 +2,7 @@
 	import { browser } from '$app/environment';
 
 	let { data } = $props();
-	const { diff, prevDiffId, nextDiffId, apPostUri } = data;
+	const { diff, prevDiffId, nextDiffId, apPostUri, bskyPostUrl } = data;
 
 	let isMobile = $state(false);
 	let shareMenuOpen = $state(false);
@@ -135,13 +135,21 @@
 			{/if}
 			<a href="/api/diff/{diff.id}/full.png" download="diff-{diff.id}-full.png" class="btn">Download image</a>
 			{#if apPostUri}
-				<button class="btn btn-fedi" onclick={openOnFediverse} title="View or interact with this post on the fediverse">
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 74 79" fill="currentColor" style="margin-right: 0.3rem;">
-						<path d="M73.7 17.7c-1-6.2-6.3-11-12.7-12.3C54.5 4 37.2 2 37.2 2h-.1C27 2 19.5 4 13 5.4 6.6 6.7 1.3 11.5.3 17.7c-.5 3.3-.9 7.1-.9 11 0 3.2.1 6.2.3 9 .7 9.4 5.3 17.7 13.4 21.4 3.8 1.8 8.1 2.7 12.5 3 4.5.3 8.7-.3 12.5-1.7 0 0 0 0 0 0-.3-1.4-.6-2.9-1-4.3-4 1.2-8.3 1.6-12.6 1.3-4.3-.3-8.5-1.7-8.8-6.5-.1-.5-.1-1-.1-1.5 4 1 8.1 1.6 12.3 1.8 2.6.1 5.1 0 7.6-.2 7.1-.7 13.3-2.9 14.1-5.3.6-1.8.8-3.8.8-5.9 0 0 0-.1 0-.1v-.2c0-6.3 2.4-7.2 2.4-7.2 2.4-1.1 1.3 4.4 1.3 7.2 0 2.4-.3 5.5-1.1 8.5-.5 2-1.4 3.8-2.5 5.4 4.1-1.7 7.5-4.6 9.5-8.5 2.5-5 2.8-10.9 2.8-15.9 0-3.9-.3-7.7-.9-11z"/>
+				<button class="btn btn-fedi" onclick={openOnFediverse} title="View this post on the fediverse">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 74 79" fill="currentColor">
+						<path d="M73.7 17.7c-1-6.2-6.3-11-12.7-12.3C54.5 4 37.2 2 37.2 2h-.1C27 2 19.5 4 13 5.4 6.6 6.7 1.3 11.5.3 17.7c-.5 3.3-.9 7.1-.9 11 0 3.2.1 6.2.3 9 .7 9.4 5.3 17.7 13.4 21.4 3.8 1.8 8.1 2.7 12.5 3 4.5.3 8.7-.3 12.5-1.7 0 0 0 0 0 0-.3-1.4-.6-2.9-1-4.3-4 1.2-8.3 1.6-12.6 1.3-4.3-.3-8.5-1.7-8.8-6.5-.1-.5-.1-1-.1-1.5 4 1 8.1 1.6 12.3 1.8 2.6.1 5.1 0 7.6-.2 7.1-.7 13.3-2.9 14.1-5.3.6-1.8.8-3.8.8-5.9v-.3c0-6.3 2.4-7.2 2.4-7.2 2.4-1.1 1.3 4.4 1.3 7.2 0 2.4-.3 5.5-1.1 8.5-.5 2-1.4 3.8-2.5 5.4 4.1-1.7 7.5-4.6 9.5-8.5 2.5-5 2.8-10.9 2.8-15.9 0-3.9-.3-7.7-.9-11z"/>
 						<path d="M61.2 27.2v22.7h-9V28c0-4.6-1.9-7-5.8-7-4.3 0-6.4 2.8-6.4 8.3v12h-9V29.3c0-5.5-2.2-8.3-6.4-8.3-3.9 0-5.8 2.3-5.8 7v21.9h-9V27.2c0-4.6 1.2-8.3 3.5-11 2.4-2.7 5.6-4.1 9.5-4.1 4.5 0 7.9 1.7 10.2 5.2l2.2 3.7 2.2-3.7c2.2-3.5 5.7-5.2 10.2-5.2 3.9 0 7.1 1.4 9.5 4.1 2.3 2.7 3.5 6.4 3.5 11z"/>
 					</svg>
-					Also on
+					ActivityPub
 				</button>
+			{/if}
+			{#if bskyPostUrl}
+				<a href={bskyPostUrl} target="_blank" rel="noopener" class="btn btn-bsky" title="View this post on Bluesky">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 568 501" fill="currentColor">
+						<path d="M123.121 33.664C188.241 82.553 258.281 181.68 284 234.873c25.719-53.192 95.759-152.32 160.879-201.21C491.866-1.611 568-28.906 568 57.947c0 17.346-9.945 145.713-15.778 166.555-20.275 72.453-94.155 90.933-159.875 79.748C507.222 323.8 536.444 388.56 473.333 453.32c-119.86 122.992-172.272-30.859-185.702-70.281-2.462-7.227-3.614-10.608-3.631-7.733-.017-2.875-1.169.506-3.631 7.733-13.43 39.422-65.842 193.273-185.702 70.281-63.111-64.76-33.889-129.52 80.986-149.07-65.72 11.185-139.6-7.295-159.875-79.748C10.945 203.659 1 75.291 1 57.946 1-28.906 77.135-1.612 123.121 33.664z"/>
+					</svg>
+					Bluesky
+				</a>
 			{/if}
 		</div>
 	</header>
@@ -208,12 +216,15 @@
 	.diff-body { line-height: 1.8; word-wrap: break-word; white-space: pre-line; }
 	.diff-nav { display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
 	.diff-nav a { color: var(--color-primary); text-decoration: none; }
-	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; align-items: flex-start; flex-wrap: wrap; }
-	.btn { display: inline-flex; align-items: center; padding: 0.4rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: 1px solid var(--color-border); background: white; color: var(--color-text); }
+	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center; flex-wrap: wrap; }
+	.btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: 1px solid var(--color-border); background: white; color: var(--color-text); }
 	.btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 	.btn-share { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 	.btn-share:hover { background: #1d4ed8; color: white; }
 	.btn-fedi { border-color: #6364ff; color: #6364ff; }
+	.btn-fedi:hover { background: #6364ff; color: white; }
+	.btn-bsky { border-color: #0085ff; color: #0085ff; }
+	.btn-bsky:hover { background: #0085ff; color: white; }
 	.btn-fedi:hover { background: #6364ff; color: white; }
 
 	.share-dropdown { position: relative; }
