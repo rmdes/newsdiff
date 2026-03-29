@@ -46,7 +46,7 @@
 			>{feed.name}</a>
 		{/each}
 		<a href={data.feedFilter ? `/feed/${data.feedFilter}/rss.xml` : '/rss.xml'}
-			class="rss-icon" title="Subscribe to this feed (Atom)">
+			class="rss-icon" title="Subscribe to this feed (RSS)">
 			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256">
 				<rect width="256" height="256" rx="55" ry="55" fill="#f26522"/>
 				<circle cx="68" cy="189" r="28" fill="#fff"/>
