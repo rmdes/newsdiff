@@ -125,7 +125,7 @@ async function processArticlePush(articleUrl: string, feedId: number) {
 	const [article] = await db
 		.insert(articles)
 		.values({ feedId, url: finalUrl })
-		.onConflictDoUpdate({ target: articles.url, set: { lastCheckedAt: new Date() } })
+		.onConflictDoUpdate({ target: articles.url, set: { feedId } })
 		.returning();
 
 	const [latestVersion] = await db

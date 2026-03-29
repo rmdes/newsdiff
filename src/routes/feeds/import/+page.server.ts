@@ -178,7 +178,7 @@ async function importUrl(url: string, feedId: number): Promise<'stored' | 'skipp
 	const [article] = await db
 		.insert(articles)
 		.values({ feedId, url: finalUrl })
-		.onConflictDoUpdate({ target: articles.url, set: { lastCheckedAt: new Date() } })
+		.onConflictDoUpdate({ target: articles.url, set: { feedId } })
 		.returning();
 
 	// Check again after upsert (race condition safety)
