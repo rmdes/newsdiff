@@ -7,5 +7,8 @@ export const load: LayoutServerLoad = () => {
 	const botHandle = host ? `@${username}@${host}` : '';
 	const botActorUrl = host ? `${origin}/ap/actor/${username}` : '';
 
-	return { botHandle, botActorUrl };
+	const bskyHandle = process.env.BLUESKY_HANDLE || '';
+	const bskyProfileUrl = bskyHandle ? `https://bsky.app/profile/${bskyHandle}` : '';
+
+	return { botHandle, botActorUrl, bskyHandle, bskyProfileUrl };
 };
