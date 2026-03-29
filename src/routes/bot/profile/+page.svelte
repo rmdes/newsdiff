@@ -5,25 +5,34 @@
 
 	// Bluesky budget: 300 chars total. ~80 chars for change desc + stats + feed name + links
 	const BSKY_LIMIT = 300;
-	const BSKY_OVERHEAD = 120; // approx: change desc, stats, feed name, URLs
-	let prefixInput = $state(data.profile.postPrefix || '');
-	let suffixInput = $state(data.profile.postSuffix || '');
-	let bskyBudget = $derived(BSKY_LIMIT - BSKY_OVERHEAD - prefixInput.length - suffixInput.length);
+	const AP_LIMIT = 500;
+	const OVERHEAD = 120;
 
-	// Live preview using a real diff
+	let apPrefixInput = $state(data.profile.postPrefix || '');
+	let apSuffixInput = $state(data.profile.postSuffix || '');
+	let bskyPrefixInput = $state(data.profile.bskyPostPrefix || '');
+	let bskySuffixInput = $state(data.profile.bskyPostSuffix || '');
+
+	let previewTab = $state('ap');
+
 	const preview = data.previewData;
-	let previewText = $derived(() => {
+
+	function buildPreview(prefix: string, suffix: string): string {
 		if (!preview) return '';
 		const changes = [
 			preview.titleChanged ? 'Headline changed' : '',
 			preview.contentChanged ? 'Content changed' : ''
 		].filter(Boolean).join(' & ') || 'Article updated';
 		const stats = `+${preview.charsAdded} / -${preview.charsRemoved} chars`;
-		const prefix = prefixInput ? `${prefixInput} ` : '';
-		const suffix = suffixInput ? `\n\n${suffixInput}` : '';
-		return `${prefix}${changes} in "${preview.title}" (${preview.feedName})\n${stats}\n\nhttps://diff.example.com/diff/${preview.diffId}\nhttps://example.com/article${suffix}`;
-	});
-	let previewCharCount = $derived(previewText().length);
+		const pfx = prefix ? `${prefix} ` : '';
+		const sfx = suffix ? `\n\n${suffix}` : '';
+		return `${pfx}${changes} in "${preview.title}" (${preview.feedName})\n${stats}\n\nhttps://diff.example.com/diff/${preview.diffId}\nhttps://example.com/article${sfx}`;
+	}
+
+	let apPreview = $derived(buildPreview(apPrefixInput, apSuffixInput));
+	let bskyPreview = $derived(buildPreview(bskyPrefixInput || apPrefixInput, bskySuffixInput || apSuffixInput));
+	let apBudget = $derived(AP_LIMIT - apPreview.length);
+	let bskyBudget = $derived(BSKY_LIMIT - bskyPreview.length);
 
 	let fields = $derived((() => {
 		const f = [...(profile.fields || [])];
@@ -116,44 +125,59 @@
 
 		<section>
 			<h2>Post template</h2>
-			<p class="hint">Customize how syndicated posts are constructed on ActivityPub and Bluesky. The default format is: <code>{'{change}'} in "{'{title}'}" ({'{feed}'})</code></p>
-			<div class="field">
-				<label for="postPrefix">Prefix</label>
-				<input type="text" id="postPrefix" name="postPrefix" bind:value={prefixInput} placeholder="e.g. 📝 Edit detected:" />
-				<p class="hint">Added before the change description. Leave empty for default.</p>
-			</div>
-			<div class="field">
-				<label for="postSuffix">Suffix</label>
-				<input type="text" id="postSuffix" name="postSuffix" bind:value={suffixInput} placeholder="e.g. #newsdiff #transparency" />
-				<p class="hint">Added at the end of every post. Useful for hashtags.</p>
-			</div>
-			<div class="budget" class:budget-warn={bskyBudget < 30} class:budget-over={bskyBudget < 0}>
-				Bluesky budget: ~{bskyBudget} chars remaining for title
-				{#if bskyBudget < 0}
-					— title will be truncated
-				{:else if bskyBudget < 30}
-					— title may be truncated
-				{/if}
+			<p class="hint">Customize syndicated posts per network. Bluesky fields fall back to ActivityPub values if left empty.</p>
+
+			<div class="template-tabs">
+				<button class:active={previewTab === 'ap'} onclick={() => previewTab = 'ap'}>
+					<span class="tab-icon">🐘</span> ActivityPub
+				</button>
+				<button class:active={previewTab === 'bsky'} onclick={() => previewTab = 'bsky'}>
+					<span class="tab-icon">🦋</span> Bluesky
+				</button>
 			</div>
 
+			{#if previewTab === 'ap'}
+				<div class="template-fields">
+					<div class="field">
+						<label for="postPrefix">Prefix</label>
+						<input type="text" id="postPrefix" name="postPrefix" bind:value={apPrefixInput} placeholder="e.g. 📝 Edit detected:" />
+					</div>
+					<div class="field">
+						<label for="postSuffix">Suffix</label>
+						<input type="text" id="postSuffix" name="postSuffix" bind:value={apSuffixInput} placeholder="e.g. #newsdiff #transparency" />
+					</div>
+					<div class="budget" class:budget-warn={apBudget < 50} class:budget-over={apBudget < 0}>
+						{apPreview.length}/500 chars
+					</div>
+				</div>
+			{:else}
+				<div class="template-fields">
+					<div class="field">
+						<label for="bskyPostPrefix">Prefix</label>
+						<input type="text" id="bskyPostPrefix" name="bskyPostPrefix" bind:value={bskyPrefixInput} placeholder={apPrefixInput || 'Same as ActivityPub'} />
+					</div>
+					<div class="field">
+						<label for="bskyPostSuffix">Suffix</label>
+						<input type="text" id="bskyPostSuffix" name="bskyPostSuffix" bind:value={bskySuffixInput} placeholder={apSuffixInput || 'Same as ActivityPub'} />
+					</div>
+					<div class="budget" class:budget-warn={bskyBudget < 30} class:budget-over={bskyBudget < 0}>
+						{bskyPreview.length}/300 chars
+						{#if bskyBudget < 0} — title will be truncated{/if}
+					</div>
+				</div>
+			{/if}
+
 			{#if preview}
-				<div class="preview-cards">
-					<div class="preview-card preview-mastodon">
-						<div class="preview-header">
-							<span class="preview-icon">🐘</span>
-							<span class="preview-label">ActivityPub preview</span>
-						</div>
-						<div class="preview-body">{previewText()}</div>
-						<div class="preview-meta">{previewCharCount} chars (no limit)</div>
+				<div class="preview-card" class:preview-mastodon={previewTab === 'ap'} class:preview-bluesky={previewTab === 'bsky'}>
+					<div class="preview-header">
+						<span class="preview-icon">{previewTab === 'ap' ? '🐘' : '🦋'}</span>
+						<span class="preview-label">{previewTab === 'ap' ? 'ActivityPub' : 'Bluesky'} preview</span>
 					</div>
-					<div class="preview-card preview-bluesky">
-						<div class="preview-header">
-							<span class="preview-icon">🦋</span>
-							<span class="preview-label">Bluesky preview</span>
-						</div>
-						<div class="preview-body" class:preview-truncated={previewCharCount > 300}>{previewText().slice(0, 300)}{#if previewCharCount > 300}...{/if}</div>
-						<div class="preview-meta" class:budget-over={previewCharCount > 300}>{Math.min(previewCharCount, 300)}/300 chars</div>
-					</div>
+					{#if previewTab === 'ap'}
+						<div class="preview-body">{apPreview}</div>
+					{:else}
+						<div class="preview-body" class:preview-truncated={bskyPreview.length > 300}>{bskyPreview.slice(0, 300)}{#if bskyPreview.length > 300}...{/if}</div>
+					{/if}
 				</div>
 			{/if}
 		</section>
@@ -226,8 +250,13 @@
 	.budget-warn { color: #92400e; background: #fef3c7; }
 	.budget-over { color: var(--color-del-text); background: var(--color-del-bg); }
 
-	.preview-cards { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
-	.preview-card { flex: 1; min-width: 260px; border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden; background: white; }
+	.template-tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 2px solid var(--color-border); }
+	.template-tabs button { padding: 0.5rem 1rem; border: none; background: none; cursor: pointer; font-size: 0.85rem; color: var(--color-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 0.3rem; }
+	.template-tabs button.active { color: var(--color-text); border-bottom-color: var(--color-primary); font-weight: 600; }
+	.template-tabs button:hover { color: var(--color-text); }
+	.template-fields { margin-bottom: 0.75rem; }
+
+	.preview-card { border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden; background: white; margin-top: 1rem; }
 	.preview-header { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; background: #f8f8f8; border-bottom: 1px solid var(--color-border); font-size: 0.8rem; font-weight: 600; color: var(--color-muted); }
 	.preview-icon { font-size: 1rem; }
 	.preview-body { padding: 0.75rem; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--color-text); }

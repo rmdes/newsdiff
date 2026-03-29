@@ -19,6 +19,8 @@ export interface BotProfile {
 	fields: BotProfileField[];
 	postPrefix: string;
 	postSuffix: string;
+	bskyPostPrefix: string;
+	bskyPostSuffix: string;
 }
 
 const DEFAULT_PROFILE: BotProfile = {
@@ -32,7 +34,9 @@ const DEFAULT_PROFILE: BotProfile = {
 		{ name: 'Source', value: 'https://github.com/rmdes/newsdiff' }
 	],
 	postPrefix: '',
-	postSuffix: ''
+	postSuffix: '',
+	bskyPostPrefix: '',
+	bskyPostSuffix: ''
 };
 
 export async function loadBotProfile(): Promise<BotProfile> {

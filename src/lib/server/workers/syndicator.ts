@@ -29,8 +29,10 @@ async function syndicate(job: Job<SyndicateJobData>) {
 	if (!diff || diff.isBoring) return;
 
 	const botProfile = await loadBotProfile();
-	const postPrefix = botProfile.postPrefix || '';
-	const postSuffix = botProfile.postSuffix || '';
+	const apPrefix = botProfile.postPrefix || '';
+	const apSuffix = botProfile.postSuffix || '';
+	const bskyPrefix = botProfile.bskyPostPrefix || apPrefix;
+	const bskySuffix = botProfile.bskyPostSuffix || apSuffix;
 
 	const cardData = {
 		feedName: diff.article.feed.name,
@@ -111,7 +113,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				articleTitle: cardData.articleTitle, feedName: diff.article.feed.name,
 				titleChanged: diff.titleChanged, contentChanged: diff.contentChanged,
 				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved,
-				diffPageUrl, archiveUrl, prefix: postPrefix, suffix: postSuffix
+				diffPageUrl, archiveUrl, prefix: bskyPrefix, suffix: bskySuffix
 			});
 
 			const embedType = (process.env.BLUESKY_EMBED_TYPE === 'card') ? 'external' as const : 'image' as const;
@@ -167,8 +169,8 @@ async function syndicate(job: Job<SyndicateJobData>) {
 			imageUrl,
 			diffPageUrl: `${origin}/diff/${diff.id}`,
 			archiveUrl,
-			prefix: postPrefix,
-			suffix: postSuffix,
+			prefix: apPrefix,
+			suffix: apSuffix,
 			replyToId: latest?.social_posts.postUri || undefined
 		});
 

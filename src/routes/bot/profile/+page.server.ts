@@ -69,11 +69,17 @@ export const actions = {
 		if (displayName !== undefined) profile.displayName = displayName || profile.displayName;
 		if (summary !== undefined) profile.summary = summary || profile.summary;
 
-		// Post template
+		// Post template — ActivityPub
 		const postPrefix = formData.get('postPrefix')?.toString().trim().slice(0, 200);
 		const postSuffix = formData.get('postSuffix')?.toString().trim().slice(0, 500);
 		if (postPrefix !== undefined) profile.postPrefix = postPrefix;
 		if (postSuffix !== undefined) profile.postSuffix = postSuffix;
+
+		// Post template — Bluesky
+		const bskyPostPrefix = formData.get('bskyPostPrefix')?.toString().trim().slice(0, 100);
+		const bskyPostSuffix = formData.get('bskyPostSuffix')?.toString().trim().slice(0, 200);
+		if (bskyPostPrefix !== undefined) profile.bskyPostPrefix = bskyPostPrefix;
+		if (bskyPostSuffix !== undefined) profile.bskyPostSuffix = bskyPostSuffix;
 
 		// Handle avatar upload
 		const avatar = formData.get('avatar') as File | null;
