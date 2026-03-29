@@ -217,10 +217,10 @@
 	.diff-nav { display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
 	.diff-nav a { color: var(--color-primary); text-decoration: none; }
 	.actions { display: flex; gap: 0.5rem; margin-top: 1rem; align-items: center; flex-wrap: wrap; }
-	.btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; cursor: pointer; text-decoration: none; border: 1px solid var(--color-border); background: white; color: var(--color-text); }
-	.btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-	.btn-share { background: var(--color-primary); color: white; border-color: var(--color-primary); }
-	.btn-share:hover { background: #1d4ed8; color: white; }
+	.btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.45rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; line-height: 1; cursor: pointer; text-decoration: none; border: 1px solid var(--color-primary); background: white; color: var(--color-primary); box-sizing: border-box; height: 34px; }
+	.btn:hover { background: var(--color-primary); color: white; }
+	.btn-share { border-color: var(--color-primary); color: var(--color-primary); }
+	.btn-share:hover { background: var(--color-primary); color: white; }
 	.btn-fedi { border-color: #6364ff; color: #6364ff; }
 	.btn-fedi:hover { background: #6364ff; color: white; }
 	.btn-bsky { border-color: #0085ff; color: #0085ff; }
