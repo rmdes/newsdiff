@@ -139,11 +139,11 @@
 			<div class="template-fields" class:hidden={previewTab !== 'ap'}>
 				<div class="field">
 					<label for="postPrefix">Prefix</label>
-					<input type="text" id="postPrefix" name="postPrefix" bind:value={apPrefixInput} placeholder="e.g. 📝 Edit detected:" />
+					<input type="text" id="postPrefix" name="postPrefix" value={apPrefixInput} oninput={(e) => apPrefixInput = e.currentTarget.value} placeholder="e.g. 📝 Edit detected:" />
 				</div>
 				<div class="field">
 					<label for="postSuffix">Suffix</label>
-					<input type="text" id="postSuffix" name="postSuffix" bind:value={apSuffixInput} placeholder="e.g. #newsdiff #transparency" />
+					<input type="text" id="postSuffix" name="postSuffix" value={apSuffixInput} oninput={(e) => apSuffixInput = e.currentTarget.value} placeholder="e.g. #newsdiff #transparency" />
 				</div>
 				<div class="budget" class:budget-warn={apBudget < 50} class:budget-over={apBudget < 0}>
 					{apPreview.length}/500 chars
@@ -152,11 +152,11 @@
 			<div class="template-fields" class:hidden={previewTab !== 'bsky'}>
 				<div class="field">
 					<label for="bskyPostPrefix">Prefix</label>
-					<input type="text" id="bskyPostPrefix" name="bskyPostPrefix" bind:value={bskyPrefixInput} placeholder={apPrefixInput || 'Same as ActivityPub'} />
+					<input type="text" id="bskyPostPrefix" name="bskyPostPrefix" value={bskyPrefixInput} oninput={(e) => bskyPrefixInput = e.currentTarget.value} placeholder={apPrefixInput || 'Same as ActivityPub'} />
 				</div>
 				<div class="field">
 					<label for="bskyPostSuffix">Suffix</label>
-					<input type="text" id="bskyPostSuffix" name="bskyPostSuffix" bind:value={bskySuffixInput} placeholder={apSuffixInput || 'Same as ActivityPub'} />
+					<input type="text" id="bskyPostSuffix" name="bskyPostSuffix" value={bskySuffixInput} oninput={(e) => bskySuffixInput = e.currentTarget.value} placeholder={apSuffixInput || 'Same as ActivityPub'} />
 				</div>
 				<div class="budget" class:budget-warn={bskyBudget < 30} class:budget-over={bskyBudget < 0}>
 					{bskyPreview.length}/300 chars
