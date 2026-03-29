@@ -41,7 +41,16 @@ npm install          # Install dependencies
 npm run dev          # Development server
 npm run build        # Production build
 npm run migrate      # Run database migrations
+npm test             # Run 64 unit tests (Vitest)
 ```
+
+## Test Coverage
+
+64 tests across 10 files. Run with `npm test`.
+
+Covered modules: `differ` (16), `feed-parser` (10), `schema` (10), `bluesky` (6), `auth` (5), `atom-builder` (4), `rate-limit` (4), `extractor` (3), `card-generator` (3), `websub` (3).
+
+Not unit-tested (integration): `feed-poller`, `syndicator`, `bot/index.ts` — these require Redis/Postgres and are tested against the live deployment.
 
 ## Project Structure
 

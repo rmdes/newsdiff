@@ -95,6 +95,25 @@ npm test        # Vitest unit tests
 npm run migrate # Run DB migrations
 ```
 
+### Test coverage
+
+64 tests across 10 test files covering all core services:
+
+| Module | Tests | What's covered |
+|--------|-------|----------------|
+| `differ` | 16 | Word-level diffing, boring detection (timestamps, relative times, date changes) |
+| `feed-parser` | 10 | RSS, Atom, JSON Feed parsing, hub discovery (WebSub) |
+| `bluesky` | 6 | Post construction, config check, character limits |
+| `auth` | 5 | Session cookies, HMAC signing, tampering, expiry, OIDC check |
+| `atom-builder` | 4 | XML generation, escaping, self links |
+| `rate-limit` | 4 | Allow/block/reset/key isolation |
+| `extractor` | 3 | Content extraction (Defuddle/Readability), feed-listing rejection |
+| `card-generator` | 3 | Diff card image generation, alt text |
+| `websub` | 3 | Subscription params, error handling |
+| `schema` | 10 | Database schema validation |
+
+Workers (feed-poller, syndicator) and the AP bot require Redis/Postgres connections and are covered by integration testing against the live deployment.
+
 ## Architecture
 
 ```
