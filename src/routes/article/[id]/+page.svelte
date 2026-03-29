@@ -1,6 +1,7 @@
 <script lang="ts">
 	let { data } = $props();
 	const { article } = data;
+	let subscribeOpen = $state(false);
 </script>
 
 <svelte:head><title>{article.versions[0]?.title || 'Article'} — NewsDiff</title></svelte:head>
@@ -10,8 +11,15 @@
 	<a href={article.url} target="_blank" rel="noopener">{article.url}</a>
 	<span>{article.feed.name}</span>
 	<span>{article.versions.length} version{article.versions.length !== 1 ? 's' : ''}</span>
-	<a href="/article/{article.id}/atom.xml" class="feed-link">Atom</a>
-	<a href="/article/{article.id}/rss.xml" class="feed-link">RSS</a>
+	<div class="subscribe-dropdown">
+		<button type="button" class="feed-link subscribe-btn" onclick={() => subscribeOpen = !subscribeOpen}>Subscribe</button>
+		{#if subscribeOpen}
+			<div class="subscribe-menu">
+				<a href="/article/{article.id}/rss.xml">RSS</a>
+				<a href="/article/{article.id}/atom.xml">Atom</a>
+			</div>
+		{/if}
+	</div>
 </div>
 
 {#if article.diffs.length > 0}
@@ -37,7 +45,21 @@
 <style>
 	.meta { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--color-muted); margin-bottom: 2rem; flex-wrap: wrap; }
 	.meta a { color: var(--color-primary); word-break: break-all; }
-	.feed-link { word-break: normal; }
+	.subscribe-dropdown { position: relative; display: inline-flex; }
+	.subscribe-btn { border: none; background: none; cursor: pointer; font-size: 0.85rem; color: var(--color-primary); padding: 0; }
+	.subscribe-btn:hover { text-decoration: underline; }
+	.subscribe-menu {
+		position: absolute; top: 100%; left: 0; margin-top: 0.25rem;
+		background: white; border: 1px solid var(--color-border); border-radius: 0.375rem;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10; min-width: 80px;
+		display: flex; flex-direction: column;
+	}
+	.subscribe-menu a {
+		display: block; padding: 0.4rem 0.75rem; text-decoration: none;
+		font-size: 0.8rem; color: var(--color-text);
+	}
+	.subscribe-menu a:hover { background: #f0f4ff; color: var(--color-primary); }
+	.subscribe-menu a:not(:last-child) { border-bottom: 1px solid var(--color-border); }
 	h2 { font-size: 1.1rem; margin-bottom: 1rem; }
 	.diff-list { display: flex; flex-direction: column; gap: 0.5rem; }
 	.diff-card { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.25rem; text-decoration: none; color: var(--color-text); background: white; }

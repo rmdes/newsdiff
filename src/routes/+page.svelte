@@ -1,6 +1,7 @@
 <script lang="ts">
 	let { data } = $props();
 	let expandedArticles = $state(new Set<number>());
+	let subscribeOpen = $state(false);
 
 	// Stable color per feed name — hashes the name to pick a hue
 	function feedColor(name: string): string {
@@ -45,15 +46,22 @@
 				style={data.feedFilter === String(feed.id) ? `background: ${feedColor(feed.name)};` : `border: 1px solid ${feedColor(feed.name)}; color: ${feedColor(feed.name)}; background: transparent;`}
 			>{feed.name}</a>
 		{/each}
-		<a href={data.feedFilter ? `/feed/${data.feedFilter}/rss.xml` : '/rss.xml'}
-			class="rss-icon" title="Subscribe to this feed (RSS)">
-			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256">
-				<rect width="256" height="256" rx="55" ry="55" fill="#f26522"/>
-				<circle cx="68" cy="189" r="28" fill="#fff"/>
-				<path d="M160 213h-34a82 82 0 0 0-82-82V97a116 116 0 0 1 116 116z" fill="#fff"/>
-				<path d="M224 213h-34a148 148 0 0 0-148-148V31a182 182 0 0 1 182 182z" fill="#fff"/>
-			</svg>
-		</a>
+		<div class="subscribe-dropdown">
+			<button type="button" class="rss-icon" onclick={() => subscribeOpen = !subscribeOpen} title="Subscribe to this feed">
+				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256">
+					<rect width="256" height="256" rx="55" ry="55" fill="#f26522"/>
+					<circle cx="68" cy="189" r="28" fill="#fff"/>
+					<path d="M160 213h-34a82 82 0 0 0-82-82V97a116 116 0 0 1 116 116z" fill="#fff"/>
+					<path d="M224 213h-34a148 148 0 0 0-148-148V31a182 182 0 0 1 182 182z" fill="#fff"/>
+				</svg>
+			</button>
+			{#if subscribeOpen}
+				<div class="subscribe-menu">
+					<a href={data.feedFilter ? `/feed/${data.feedFilter}/rss.xml` : '/rss.xml'}>RSS</a>
+					<a href={data.feedFilter ? `/feed/${data.feedFilter}/atom.xml` : '/atom.xml'}>Atom</a>
+				</div>
+			{/if}
+		</div>
 	</div>
 	<label>
 		<input type="checkbox" checked={data.showBoring}
@@ -148,8 +156,21 @@
 	.feed-tabs a { padding: 0.2rem 0.6rem; border-radius: 1rem; text-decoration: none; background: var(--color-border); color: var(--color-text); font-size: 0.8rem; transition: background 0.15s; }
 	.feed-tabs a:hover { background: var(--color-primary); color: white; }
 	.feed-tabs a.active { background: var(--color-primary); color: white; }
-	.rss-icon { display: inline-flex; align-items: center; background: none !important; padding: 0.2rem !important; }
-	.rss-icon:hover { background: none !important; opacity: 0.8; }
+	.subscribe-dropdown { position: relative; display: inline-flex; }
+	.rss-icon { display: inline-flex; align-items: center; background: none !important; padding: 0.2rem !important; border: none; cursor: pointer; }
+	.rss-icon:hover { opacity: 0.8; }
+	.subscribe-menu {
+		position: absolute; top: 100%; right: 0; margin-top: 0.25rem;
+		background: white; border: 1px solid var(--color-border); border-radius: 0.375rem;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10; min-width: 80px;
+		display: flex; flex-direction: column;
+	}
+	.subscribe-menu a {
+		display: block; padding: 0.4rem 0.75rem; text-decoration: none;
+		font-size: 0.8rem; color: var(--color-text);
+	}
+	.subscribe-menu a:hover { background: #f0f4ff; color: var(--color-primary); }
+	.subscribe-menu a:not(:last-child) { border-bottom: 1px solid var(--color-border); }
 	label { font-size: 0.8rem; white-space: nowrap; color: var(--color-muted); }
 
 	.diff-list { display: flex; flex-direction: column; gap: 1rem; }
