@@ -1,5 +1,29 @@
 import { BskyAgent, RichText } from '@atproto/api';
 
+/**
+ * Resolve the PDS endpoint for a Bluesky handle.
+ * Falls back to bsky.social if resolution fails.
+ */
+async function resolvePds(handle: string): Promise<string> {
+	try {
+		const res = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`, {
+			signal: AbortSignal.timeout(10000)
+		});
+		if (!res.ok) return 'https://bsky.social';
+		const { did } = await res.json() as { did: string };
+
+		const plcRes = await fetch(`https://plc.directory/${did}`, {
+			signal: AbortSignal.timeout(10000)
+		});
+		if (!plcRes.ok) return 'https://bsky.social';
+		const doc = await plcRes.json() as { service?: Array<{ id: string; serviceEndpoint: string }> };
+		const pds = doc.service?.find(s => s.id === '#atproto_pds');
+		return pds?.serviceEndpoint || 'https://bsky.social';
+	} catch {
+		return 'https://bsky.social';
+	}
+}
+
 export function isBlueskyConfigured(handle?: string, password?: string): boolean {
 	return Boolean(handle && password);
 }
@@ -51,7 +75,9 @@ export async function postToBluesky(params: {
 	replyTo?: { uri: string; cid: string };
 	rootRef?: { uri: string; cid: string };
 }): Promise<{ uri: string; cid: string }> {
-	const agent = new BskyAgent({ service: 'https://bsky.social' });
+	// Resolve the PDS from the handle (supports custom PDS like eurosky.social)
+	const service = process.env.BLUESKY_PDS || await resolvePds(params.handle);
+	const agent = new BskyAgent({ service });
 	await agent.login({ identifier: params.handle, password: params.password });
 
 	const rt = new RichText({ text: params.text });
