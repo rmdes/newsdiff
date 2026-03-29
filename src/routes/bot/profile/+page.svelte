@@ -128,44 +128,41 @@
 			<p class="hint">Customize syndicated posts per network. Bluesky fields fall back to ActivityPub values if left empty.</p>
 
 			<div class="template-tabs">
-				<button class:active={previewTab === 'ap'} onclick={() => previewTab = 'ap'}>
+				<button type="button" class:active={previewTab === 'ap'} onclick={() => previewTab = 'ap'}>
 					<span class="tab-icon">🐘</span> ActivityPub
 				</button>
-				<button class:active={previewTab === 'bsky'} onclick={() => previewTab = 'bsky'}>
+				<button type="button" class:active={previewTab === 'bsky'} onclick={() => previewTab = 'bsky'}>
 					<span class="tab-icon">🦋</span> Bluesky
 				</button>
 			</div>
 
-			{#if previewTab === 'ap'}
-				<div class="template-fields">
-					<div class="field">
-						<label for="postPrefix">Prefix</label>
-						<input type="text" id="postPrefix" name="postPrefix" bind:value={apPrefixInput} placeholder="e.g. 📝 Edit detected:" />
-					</div>
-					<div class="field">
-						<label for="postSuffix">Suffix</label>
-						<input type="text" id="postSuffix" name="postSuffix" bind:value={apSuffixInput} placeholder="e.g. #newsdiff #transparency" />
-					</div>
-					<div class="budget" class:budget-warn={apBudget < 50} class:budget-over={apBudget < 0}>
-						{apPreview.length}/500 chars
-					</div>
+			<div class="template-fields" class:hidden={previewTab !== 'ap'}>
+				<div class="field">
+					<label for="postPrefix">Prefix</label>
+					<input type="text" id="postPrefix" name="postPrefix" bind:value={apPrefixInput} placeholder="e.g. 📝 Edit detected:" />
 				</div>
-			{:else}
-				<div class="template-fields">
-					<div class="field">
-						<label for="bskyPostPrefix">Prefix</label>
-						<input type="text" id="bskyPostPrefix" name="bskyPostPrefix" bind:value={bskyPrefixInput} placeholder={apPrefixInput || 'Same as ActivityPub'} />
-					</div>
-					<div class="field">
-						<label for="bskyPostSuffix">Suffix</label>
-						<input type="text" id="bskyPostSuffix" name="bskyPostSuffix" bind:value={bskySuffixInput} placeholder={apSuffixInput || 'Same as ActivityPub'} />
-					</div>
-					<div class="budget" class:budget-warn={bskyBudget < 30} class:budget-over={bskyBudget < 0}>
-						{bskyPreview.length}/300 chars
-						{#if bskyBudget < 0} — title will be truncated{/if}
-					</div>
+				<div class="field">
+					<label for="postSuffix">Suffix</label>
+					<input type="text" id="postSuffix" name="postSuffix" bind:value={apSuffixInput} placeholder="e.g. #newsdiff #transparency" />
 				</div>
-			{/if}
+				<div class="budget" class:budget-warn={apBudget < 50} class:budget-over={apBudget < 0}>
+					{apPreview.length}/500 chars
+				</div>
+			</div>
+			<div class="template-fields" class:hidden={previewTab !== 'bsky'}>
+				<div class="field">
+					<label for="bskyPostPrefix">Prefix</label>
+					<input type="text" id="bskyPostPrefix" name="bskyPostPrefix" bind:value={bskyPrefixInput} placeholder={apPrefixInput || 'Same as ActivityPub'} />
+				</div>
+				<div class="field">
+					<label for="bskyPostSuffix">Suffix</label>
+					<input type="text" id="bskyPostSuffix" name="bskyPostSuffix" bind:value={bskySuffixInput} placeholder={apSuffixInput || 'Same as ActivityPub'} />
+				</div>
+				<div class="budget" class:budget-warn={bskyBudget < 30} class:budget-over={bskyBudget < 0}>
+					{bskyPreview.length}/300 chars
+					{#if bskyBudget < 0} — title will be truncated{/if}
+				</div>
+			</div>
 
 			{#if preview}
 				<div class="preview-card" class:preview-mastodon={previewTab === 'ap'} class:preview-bluesky={previewTab === 'bsky'}>
@@ -173,11 +170,8 @@
 						<span class="preview-icon">{previewTab === 'ap' ? '🐘' : '🦋'}</span>
 						<span class="preview-label">{previewTab === 'ap' ? 'ActivityPub' : 'Bluesky'} preview</span>
 					</div>
-					{#if previewTab === 'ap'}
-						<div class="preview-body">{apPreview}</div>
-					{:else}
-						<div class="preview-body" class:preview-truncated={bskyPreview.length > 300}>{bskyPreview.slice(0, 300)}{#if bskyPreview.length > 300}...{/if}</div>
-					{/if}
+					<div class="preview-body" class:hidden={previewTab !== 'ap'}>{apPreview}</div>
+					<div class="preview-body" class:hidden={previewTab !== 'bsky'} class:preview-truncated={bskyPreview.length > 300}>{bskyPreview.slice(0, 300)}{#if bskyPreview.length > 300}...{/if}</div>
 				</div>
 			{/if}
 		</section>
@@ -255,6 +249,7 @@
 	.template-tabs button.active { color: var(--color-text); border-bottom-color: var(--color-primary); font-weight: 600; }
 	.template-tabs button:hover { color: var(--color-text); }
 	.template-fields { margin-bottom: 0.75rem; }
+	.hidden { display: none; }
 
 	.preview-card { border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden; background: white; margin-top: 1rem; }
 	.preview-header { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; background: #f8f8f8; border-bottom: 1px solid var(--color-border); font-size: 0.8rem; font-weight: 600; color: var(--color-muted); }
