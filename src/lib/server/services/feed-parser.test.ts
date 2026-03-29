@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFeedItems } from './feed-parser';
+import { parseFeedItems, discoverHub } from './feed-parser';
 
 const RSS_FEED = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -95,5 +95,42 @@ describe('parseFeedItems', () => {
 		const json = JSON.stringify({ version: 'https://jsonfeed.org/version/1', title: 'Empty', items: [] });
 		const items = await parseFeedItems(json);
 		expect(items).toHaveLength(0);
+	});
+});
+
+describe('discoverHub', () => {
+	it('discovers hub from JSON Feed hubs array', () => {
+		const json = JSON.stringify({
+			version: 'https://jsonfeed.org/version/1.1',
+			title: 'Test',
+			hubs: [{ type: 'WebSub', url: 'https://hub.example.com/hub' }],
+			items: []
+		});
+		expect(discoverHub(json)).toBe('https://hub.example.com/hub');
+	});
+
+	it('discovers hub from RSS link rel="hub"', () => {
+		const rss = `<?xml version="1.0"?>
+		<rss version="2.0">
+			<channel>
+				<link rel="hub" href="https://pubsubhub.example.com" />
+				<title>Test</title>
+			</channel>
+		</rss>`;
+		expect(discoverHub(rss)).toBe('https://pubsubhub.example.com');
+	});
+
+	it('discovers hub from Atom link', () => {
+		const atom = `<?xml version="1.0"?>
+		<feed xmlns="http://www.w3.org/2005/Atom">
+			<link href="https://websub.example.com/hub" rel="hub" />
+			<title>Test</title>
+		</feed>`;
+		expect(discoverHub(atom)).toBe('https://websub.example.com/hub');
+	});
+
+	it('returns null when no hub found', () => {
+		expect(discoverHub('<rss><channel><title>No hub</title></channel></rss>')).toBeNull();
+		expect(discoverHub(JSON.stringify({ version: 'https://jsonfeed.org/version/1', items: [] }))).toBeNull();
 	});
 });
