@@ -39,12 +39,14 @@ export const load: PageServerLoad = async ({ params }) => {
 	});
 
 	// Convert Bluesky post URI (at://) to bsky.app URL
+	// Stored format: at://did:plc:xxx/app.bsky.feed.post/rkey|cid — strip the |cid part
 	let bskyPostUrl: string | null = null;
 	if (bskyPost?.postUri) {
-		// URI format: at://did:plc:xxx/app.bsky.feed.post/yyy
-		const match = bskyPost.postUri.match(/at:\/\/(did:[^/]+)\/app\.bsky\.feed\.post\/(.+)/);
+		const uri = bskyPost.postUri.split('|')[0]; // strip CID suffix
+		const match = uri.match(/at:\/\/[^/]+\/app\.bsky\.feed\.post\/(.+)/);
 		if (match) {
-			bskyPostUrl = `https://bsky.app/profile/${match[1]}/post/${match[2]}`;
+			const handle = process.env.BLUESKY_HANDLE || '';
+			bskyPostUrl = `https://bsky.app/profile/${handle}/post/${match[1]}`;
 		}
 	}
 
