@@ -7,6 +7,10 @@
 
 <h1>Manage Feeds</h1>
 
+<div class="feed-actions">
+	<a href="/feeds/import" class="btn-import">Import from sitemap</a>
+</div>
+
 <form method="POST" action="?/add" use:enhance class="add-form">
 	<input type="text" name="name" placeholder="Feed name" required />
 	<input type="url" name="url" placeholder="https://example.com/rss" required />
@@ -69,6 +73,9 @@
 {/if}
 
 <style>
+	.feed-actions { margin-bottom: 1rem; }
+	.btn-import { display: inline-block; padding: 0.4rem 0.75rem; border: 1px solid var(--color-border); border-radius: 0.25rem; text-decoration: none; font-size: 0.85rem; color: var(--color-text); }
+	.btn-import:hover { border-color: var(--color-primary); color: var(--color-primary); }
 	.add-form { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
 	.add-form input { flex: 1; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.25rem; }
 	.add-form button { padding: 0.5rem 1rem; background: var(--color-primary); color: white; border: none; border-radius: 0.25rem; cursor: pointer; }
