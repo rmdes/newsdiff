@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAtomFeed } from './atom-builder';
+import { buildAtomFeed, buildRssFeed } from './feed-builder';
 
 describe('buildAtomFeed', () => {
 	it('generates valid Atom XML with entries', () => {
@@ -71,5 +71,57 @@ describe('buildAtomFeed', () => {
 
 		expect(xml).toContain('rel="self"');
 		expect(xml).toContain('type="application/atom+xml"');
+	});
+
+	it('includes WebSub hub link when provided', () => {
+		const xml = buildAtomFeed({
+			id: 'https://example.com/atom.xml',
+			title: 'Test',
+			link: 'https://example.com',
+			updated: '2026-03-29T10:00:00Z',
+			entries: [],
+			hubUrl: 'https://hub.example.com'
+		});
+
+		expect(xml).toContain('rel="hub"');
+		expect(xml).toContain('https://hub.example.com');
+	});
+});
+
+describe('buildRssFeed', () => {
+	it('generates valid RSS 2.0 XML', () => {
+		const xml = buildRssFeed({
+			id: 'https://example.com/rss.xml',
+			title: 'Test RSS',
+			link: 'https://example.com',
+			updated: '2026-03-29T10:00:00Z',
+			entries: [{
+				id: 'https://example.com/diff/1',
+				title: 'Content changed: Article',
+				link: 'https://example.com/diff/1',
+				updated: '2026-03-29T10:00:00Z',
+				summary: 'Test summary'
+			}]
+		});
+
+		expect(xml).toContain('<rss version="2.0"');
+		expect(xml).toContain('<channel>');
+		expect(xml).toContain('<item>');
+		expect(xml).toContain('<pubDate>');
+		expect(xml).toContain('Test RSS');
+	});
+
+	it('includes WebSub hub in RSS', () => {
+		const xml = buildRssFeed({
+			id: 'https://example.com/rss.xml',
+			title: 'Test',
+			link: 'https://example.com',
+			updated: '2026-03-29T10:00:00Z',
+			entries: [],
+			hubUrl: 'https://hub.example.com'
+		});
+
+		expect(xml).toContain('rel="hub"');
+		expect(xml).toContain('https://hub.example.com');
 	});
 });

@@ -35,7 +35,8 @@
 
 <svelte:head>
 	{#if botActorUrl}<link rel="me" href={botActorUrl} />{/if}
-	<link rel="alternate" type="application/atom+xml" title="NewsDiff — All Diffs" href="/feed.xml" />
+	<link rel="alternate" type="application/atom+xml" title="NewsDiff — All Diffs (Atom)" href="/atom.xml" />
+	<link rel="alternate" type="application/rss+xml" title="NewsDiff — All Diffs (RSS)" href="/rss.xml" />
 </svelte:head>
 
 <header>
@@ -76,7 +77,7 @@
 			</a>
 		{/if}
 	</div>
-	<p><a href="https://github.com/rmdes/newsdiff">Source code</a> · <a href="/feed.xml">Atom feed</a></p>
+	<p><a href="https://github.com/rmdes/newsdiff">Source code</a> · <a href="/atom.xml">Atom</a> · <a href="/rss.xml">RSS</a></p>
 </footer>
 
 <!-- Fediverse instance picker modal (shared across pages) -->

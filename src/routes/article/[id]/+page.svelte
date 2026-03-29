@@ -10,7 +10,8 @@
 	<a href={article.url} target="_blank" rel="noopener">{article.url}</a>
 	<span>{article.feed.name}</span>
 	<span>{article.versions.length} version{article.versions.length !== 1 ? 's' : ''}</span>
-	<a href="/article/{article.id}/feed.xml" class="feed-link">Atom feed</a>
+	<a href="/article/{article.id}/atom.xml" class="feed-link">Atom</a>
+	<a href="/article/{article.id}/rss.xml" class="feed-link">RSS</a>
 </div>
 
 {#if article.diffs.length > 0}

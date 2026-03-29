@@ -45,7 +45,7 @@
 				style={data.feedFilter === String(feed.id) ? `background: ${feedColor(feed.name)};` : `border: 1px solid ${feedColor(feed.name)}; color: ${feedColor(feed.name)}; background: transparent;`}
 			>{feed.name}</a>
 		{/each}
-		<a href={data.feedFilter ? `/feed/${data.feedFilter}.xml` : '/feed.xml'}
+		<a href={data.feedFilter ? `/feed/${data.feedFilter}/rss.xml` : '/rss.xml'}
 			class="rss-icon" title="Subscribe to this feed (Atom)">
 			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 256 256">
 				<rect width="256" height="256" rx="55" ry="55" fill="#f26522"/>
