@@ -85,9 +85,10 @@
 					{/if}
 					<input type="file" name="avatar" accept="image/png,image/jpeg,image/webp" />
 					{#if profile.avatarUrl}
-						<form method="POST" action="?/removeAvatar" class="inline-form">
-							<button type="submit" class="remove-btn">Remove</button>
-						</form>
+						<button type="button" class="remove-btn" onclick={async () => {
+							await fetch('?/removeAvatar', { method: 'POST' });
+							location.reload();
+						}}>Remove</button>
 					{/if}
 				</div>
 
@@ -102,9 +103,10 @@
 					{/if}
 					<input type="file" name="header" accept="image/png,image/jpeg,image/webp" />
 					{#if profile.headerUrl}
-						<form method="POST" action="?/removeHeader" class="inline-form">
-							<button type="submit" class="remove-btn">Remove</button>
-						</form>
+						<button type="button" class="remove-btn" onclick={async () => {
+							await fetch('?/removeHeader', { method: 'POST' });
+							location.reload();
+						}}>Remove</button>
 					{/if}
 				</div>
 			</div>
