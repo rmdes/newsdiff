@@ -16,8 +16,10 @@ Draws inspiration from [newsdiffs](https://github.com/danielsci/newsdiffs), [dif
 - Atom output feeds: `/feed.xml` (all diffs), `/feed/{feedId}.xml` (per source), `/article/{id}/feed.xml` (per article)
 - Web Share API on mobile, share dropdown on desktop
 - "Boring" diff detection — skips timestamp-only changes and minor numeric updates
+- WebSub support — instant push updates from hubs, with polling as fallback
+- Sitemap import — seed baseline versions for an entire site so future edits are detected
 - Rate-limited syndication (configurable, default: 1 post per 5 minutes)
-- OIDC-protected feed management and bot profile editor
+- OIDC-protected feed management, bot profile editor, and sitemap importer
 
 ## Tech Stack
 
@@ -109,6 +111,21 @@ SvelteKit (:3000) ─┐
                     ├─ nginx (:8000, public)
 Botkit (:8001) ────┘
 ```
+
+### Sitemap import
+
+To detect edits on articles published before NewsDiff was set up, import a sitemap to seed baseline versions:
+
+1. Go to `/feeds` → "Import from sitemap"
+2. Enter your sitemap URL (e.g., `https://example.com/sitemap.xml`)
+3. Select the feed to associate articles with
+4. Click "Start import" — progress is shown on the page
+
+The import stores version 1 for each URL without creating any diffs or social posts. Future edits detected by the feed poller will diff against this baseline.
+
+### WebSub
+
+Feeds that advertise a [WebSub](https://www.w3.org/TR/websub/) hub are automatically subscribed for instant push updates. The hub pushes updated feed content to NewsDiff when the source changes, so diffs appear within seconds rather than waiting for the next poll. Polling continues as a fallback for all feeds.
 
 nginx routes ActivityPub paths (`/.well-known/webfinger`, `/users/`, `/ap/`, `/nodeinfo/`) to Botkit; everything else goes to SvelteKit.
 

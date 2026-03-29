@@ -13,7 +13,9 @@ A modern news article diff tracker that monitors RSS feeds for changes in titles
 5. **Social syndication** — post diff summaries/images to Bluesky and ActivityPub (Fediverse)
 6. **Internet Archive** — archive each version to the Wayback Machine
 7. **Atom output feeds** — subscribe to diffs via RSS reader
-8. **No Twitter/X** — explicitly excluded from scope
+8. **WebSub** — instant push updates from hubs that support it
+9. **Sitemap import** — seed baseline versions for an entire site
+10. **No Twitter/X** — explicitly excluded from scope
 
 ## Tech Stack
 
