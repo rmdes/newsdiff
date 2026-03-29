@@ -6,7 +6,6 @@ import { eq, desc } from 'drizzle-orm';
 import { fetchAndParseFeed } from '../services/feed-parser';
 import { extractArticle, computeHash } from '../services/extractor';
 import { computeDiff, isBoring } from '../services/differ';
-import { shouldCheckArticle } from '../services/scheduler';
 import { archiveUrl, isArchiveEnabled } from '../services/archive';
 
 export interface FeedPollJobData {

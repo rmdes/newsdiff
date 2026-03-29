@@ -226,7 +226,6 @@
 	.header-placeholder { width: 100%; border-radius: 0.25rem; }
 	input[type="file"] { font-size: 0.85rem; margin-bottom: 0.25rem; }
 	.remove-btn { background: none; border: none; color: var(--color-del-text); cursor: pointer; font-size: 0.8rem; padding: 0; }
-	.inline-form { display: inline; }
 
 	.hint { font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0.75rem; }
 	.hint code { background: #e2e8f0; padding: 0.1em 0.3em; border-radius: 2px; font-size: 0.85em; }
