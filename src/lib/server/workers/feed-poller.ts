@@ -200,15 +200,6 @@ async function pollFeed(job: Job<FeedPollJobData>) {
 
 		let articleErrors = 0;
 		for (const item of items) {
-			const [existing] = await db
-				.select()
-				.from(articles)
-				.where(eq(articles.url, item.url))
-				.limit(1);
-
-			if (existing && !shouldCheckArticle(existing.firstSeenAt, existing.lastCheckedAt)) {
-				continue;
-			}
 
 			try {
 				await processArticle(item.url, feedId);
