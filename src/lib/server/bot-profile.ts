@@ -17,6 +17,8 @@ export interface BotProfile {
 	avatarUrl: string;
 	headerUrl: string;
 	fields: BotProfileField[];
+	postPrefix: string;
+	postSuffix: string;
 }
 
 const DEFAULT_PROFILE: BotProfile = {
@@ -28,7 +30,9 @@ const DEFAULT_PROFILE: BotProfile = {
 	fields: [
 		{ name: 'Website', value: '' },
 		{ name: 'Source', value: 'https://github.com/rmdes/newsdiff' }
-	]
+	],
+	postPrefix: '',
+	postSuffix: ''
 };
 
 export async function loadBotProfile(): Promise<BotProfile> {

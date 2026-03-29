@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { generateDiffCard, generateAltText } from '../services/card-generator';
 import { postToBluesky, buildBlueskyPost, isBlueskyConfigured, type BlueskyEmbed } from '../services/bluesky';
 import { publishDiff as publishApDiff } from '../../../bot/index';
+import { loadBotProfile } from '../bot-profile';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -26,6 +27,10 @@ async function syndicate(job: Job<SyndicateJobData>) {
 	});
 
 	if (!diff || diff.isBoring) return;
+
+	const botProfile = await loadBotProfile();
+	const postPrefix = botProfile.postPrefix || '';
+	const postSuffix = botProfile.postSuffix || '';
 
 	const cardData = {
 		feedName: diff.article.feed.name,
@@ -106,7 +111,7 @@ async function syndicate(job: Job<SyndicateJobData>) {
 				articleTitle: cardData.articleTitle, feedName: diff.article.feed.name,
 				titleChanged: diff.titleChanged, contentChanged: diff.contentChanged,
 				charsAdded: diff.charsAdded, charsRemoved: diff.charsRemoved,
-				diffPageUrl, archiveUrl
+				diffPageUrl, archiveUrl, prefix: postPrefix, suffix: postSuffix
 			});
 
 			const embedType = (process.env.BLUESKY_EMBED_TYPE === 'card') ? 'external' as const : 'image' as const;
@@ -162,6 +167,8 @@ async function syndicate(job: Job<SyndicateJobData>) {
 			imageUrl,
 			diffPageUrl: `${origin}/diff/${diff.id}`,
 			archiveUrl,
+			prefix: postPrefix,
+			suffix: postSuffix,
 			replyToId: latest?.social_posts.postUri || undefined
 		});
 

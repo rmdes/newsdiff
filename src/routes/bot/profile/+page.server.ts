@@ -50,6 +50,12 @@ export const actions = {
 		if (displayName !== undefined) profile.displayName = displayName || profile.displayName;
 		if (summary !== undefined) profile.summary = summary || profile.summary;
 
+		// Post template
+		const postPrefix = formData.get('postPrefix')?.toString().trim().slice(0, 200);
+		const postSuffix = formData.get('postSuffix')?.toString().trim().slice(0, 500);
+		if (postPrefix !== undefined) profile.postPrefix = postPrefix;
+		if (postSuffix !== undefined) profile.postSuffix = postSuffix;
+
 		// Handle avatar upload
 		const avatar = formData.get('avatar') as File | null;
 		if (avatar && avatar.size > 0) {

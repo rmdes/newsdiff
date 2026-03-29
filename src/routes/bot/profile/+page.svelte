@@ -3,6 +3,13 @@
 	let { data, form } = $props();
 	let profile = $derived(data.profile);
 
+	// Bluesky budget: 300 chars total. ~80 chars for change desc + stats + feed name + links
+	const BSKY_LIMIT = 300;
+	const BSKY_OVERHEAD = 120; // approx: change desc, stats, feed name, URLs
+	let prefixInput = $state(data.profile.postPrefix || '');
+	let suffixInput = $state(data.profile.postSuffix || '');
+	let bskyBudget = $derived(BSKY_LIMIT - BSKY_OVERHEAD - prefixInput.length - suffixInput.length);
+
 	let fields = $derived((() => {
 		const f = [...(profile.fields || [])];
 		while (f.length < 4) f.push({ name: '', value: '' });
@@ -92,6 +99,29 @@
 			</div>
 		</section>
 
+		<section>
+			<h2>Post template</h2>
+			<p class="hint">Customize how syndicated posts are constructed on ActivityPub and Bluesky. The default format is: <code>{'{change}'} in "{'{title}'}" ({'{feed}'})</code></p>
+			<div class="field">
+				<label for="postPrefix">Prefix</label>
+				<input type="text" id="postPrefix" name="postPrefix" bind:value={prefixInput} placeholder="e.g. 📝 Edit detected:" />
+				<p class="hint">Added before the change description. Leave empty for default.</p>
+			</div>
+			<div class="field">
+				<label for="postSuffix">Suffix</label>
+				<input type="text" id="postSuffix" name="postSuffix" bind:value={suffixInput} placeholder="e.g. #newsdiff #transparency" />
+				<p class="hint">Added at the end of every post. Useful for hashtags.</p>
+			</div>
+			<div class="budget" class:budget-warn={bskyBudget < 30} class:budget-over={bskyBudget < 0}>
+				Bluesky budget: ~{bskyBudget} chars remaining for title
+				{#if bskyBudget < 0}
+					— title will be truncated
+				{:else if bskyBudget < 30}
+					— title may be truncated
+				{/if}
+			</div>
+		</section>
+
 		<div class="actions">
 			<button type="submit" class="btn-save">Save Profile</button>
 		</div>
@@ -155,6 +185,10 @@
 		border: none; border-radius: 0.25rem; cursor: pointer; font-size: 0.9rem;
 	}
 	.btn-save:hover { background: #1d4ed8; }
+
+	.budget { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; padding: 0.4rem 0.6rem; background: #f5f5f5; border-radius: 0.25rem; }
+	.budget-warn { color: #92400e; background: #fef3c7; }
+	.budget-over { color: var(--color-del-text); background: var(--color-del-bg); }
 
 	.danger-zone { margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid var(--color-del-bg); }
 	.danger-zone h2 { color: var(--color-del-text); border-bottom-color: var(--color-del-bg); }

@@ -144,6 +144,8 @@ export async function publishDiff(params: {
 	imageUrl: string;
 	diffPageUrl: string;
 	archiveUrl?: string;
+	prefix?: string;
+	suffix?: string;
 	replyToId?: string;
 }): Promise<{ id: string }> {
 	const session = getBotSession();
@@ -155,17 +157,24 @@ export async function publishDiff(params: {
 
 	const stats = `+${params.charsAdded} / -${params.charsRemoved} chars`;
 
+	const prefix = params.prefix ? `${params.prefix} ` : '';
+	const changeText = `${prefix}${changeDesc.charAt(0).toUpperCase() + changeDesc.slice(1)} changed in "${params.articleTitle}" (${params.feedName})`;
+
 	const links = [
 		link("View diff", params.diffPageUrl),
 		link("Original", params.articleUrl),
 		params.archiveUrl ? link("Archived", params.archiveUrl) : null
 	].filter(Boolean);
 
-	const messageText = text`${changeDesc.charAt(0).toUpperCase() + changeDesc.slice(1)} changed in "${params.articleTitle}" (${params.feedName})
+	const suffixText = params.suffix ? text`
+
+${params.suffix}` : text``;
+
+	const messageText = text`${changeText}
 
 ${stats}
 
-${links[0]}${links[1] ? text` · ${links[1]}` : text``}${links[2] ? text` · ${links[2]}` : text``}`;
+${links[0]}${links[1] ? text` · ${links[1]}` : text``}${links[2] ? text` · ${links[2]}` : text``}${suffixText}`;
 
 	const attachments = [
 		new Image({

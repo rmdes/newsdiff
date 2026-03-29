@@ -39,11 +39,16 @@ interface PostInput {
 	charsRemoved?: number;
 	diffPageUrl?: string;
 	archiveUrl?: string;
+	prefix?: string;
+	suffix?: string;
 }
+
+const BLUESKY_CHAR_LIMIT = 300;
 
 export function buildBlueskyPost(input: PostInput): { text: string } {
 	if (input.isRoot) {
-		return { text: `Tracking: ${input.articleTitle}\n\n${input.articleUrl}` };
+		const rootText = `Tracking: ${input.articleTitle}\n\n${input.articleUrl}`;
+		return { text: rootText.slice(0, BLUESKY_CHAR_LIMIT) };
 	}
 
 	const changes: string[] = [];
@@ -52,10 +57,24 @@ export function buildBlueskyPost(input: PostInput): { text: string } {
 
 	const changeDesc = changes.join(' & ') || 'Article updated';
 	const stats = `+${input.charsAdded ?? 0} / -${input.charsRemoved ?? 0} chars`;
-
 	const linkLines = [input.diffPageUrl, input.articleUrl, input.archiveUrl].filter(Boolean);
 
-	return { text: `${changeDesc} in "${input.articleTitle}" (${input.feedName})\n${stats}\n\n${linkLines.join('\n')}` };
+	const prefix = input.prefix ? `${input.prefix} ` : '';
+	const suffix = input.suffix ? `\n\n${input.suffix}` : '';
+
+	// Build the core message, then truncate title if needed to fit within limit
+	const links = linkLines.join('\n');
+	const template = `${prefix}${changeDesc} in "TITLE" (${input.feedName})\n${stats}\n\n${links}${suffix}`;
+	const availableForTitle = BLUESKY_CHAR_LIMIT - template.length + 5; // 5 = "TITLE" placeholder
+
+	const title = availableForTitle > 20
+		? (input.articleTitle.length > availableForTitle
+			? input.articleTitle.slice(0, availableForTitle - 3) + '...'
+			: input.articleTitle)
+		: input.articleTitle.slice(0, 20) + '...';
+
+	const text = `${prefix}${changeDesc} in "${title}" (${input.feedName})\n${stats}\n\n${links}${suffix}`;
+	return { text: text.slice(0, BLUESKY_CHAR_LIMIT) };
 }
 
 export interface BlueskyEmbed {
