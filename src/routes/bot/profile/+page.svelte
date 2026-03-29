@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 	let { data, form } = $props();
 	let profile = $derived(data.profile);
@@ -29,8 +30,8 @@
 		return `${pfx}${changes} in "${preview.title}" (${preview.feedName})\n${stats}\n\nhttps://diff.example.com/diff/${preview.diffId}\nhttps://example.com/article${sfx}`;
 	}
 
-	let apPreview = $derived(buildPreview(apPrefixInput, apSuffixInput));
-	let bskyPreview = $derived(buildPreview(bskyPrefixInput || apPrefixInput, bskySuffixInput || apSuffixInput));
+	let apPreview = $derived(browser ? buildPreview(apPrefixInput, apSuffixInput) : '');
+	let bskyPreview = $derived(browser ? buildPreview(bskyPrefixInput || apPrefixInput, bskySuffixInput || apSuffixInput) : '');
 	let apBudget = $derived(AP_LIMIT - apPreview.length);
 	let bskyBudget = $derived(BSKY_LIMIT - bskyPreview.length);
 
