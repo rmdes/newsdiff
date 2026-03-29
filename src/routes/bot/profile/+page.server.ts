@@ -4,6 +4,7 @@ import { loadBotProfile, saveBotProfile } from '$lib/server/bot-profile';
 import { reloadBotProfile, getBotSession } from '../../../bot/index';
 import { db } from '$lib/server/db';
 import { diffs, socialPosts } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import { getRedisConnection } from '$lib/server/workers/connection';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
