@@ -1,4 +1,4 @@
-import { createBot, text, link, Image, parseSemVer, type Session } from "@fedify/botkit";
+import { createBot, text, link, Image, type Session } from "@fedify/botkit";
 import { RedisKvStore, RedisMessageQueue } from "@fedify/redis";
 import Redis from "ioredis";
 import { createServer } from "node:http";
@@ -83,7 +83,7 @@ function getBot() {
 		properties,
 		software: {
 			name: "newsdiff",
-			version: parseSemVer("0.1.0"),
+			version: "0.1.0",
 			homepage: new URL(origin),
 		},
 		pages: {
@@ -109,13 +109,15 @@ export async function reloadBotProfile(): Promise<void> {
 	_botFetch = undefined;
 	const bot = getBot();
 	const origin = process.env.BOT_ORIGIN || process.env.ORIGIN || "https://localhost";
-	const username = loadProfileSync().username;
 
-	// TODO: Replace with session.republishProfile() when Botkit ships it.
-	// See: https://github.com/fedify-dev/botkit/issues/18
-	// Currently blocked by Fedify v1/v2 version mismatch in Botkit.
-	// Profile changes propagate on next post or when remote instances re-fetch the actor.
-	console.log(`Bot profile reloaded from disk (profile changes propagate on next post)`);
+	// Broadcast profile update to all followers (Botkit 0.4.0+)
+	try {
+		const session = bot.getSession(origin);
+		await session.republishProfile();
+		console.log('Bot profile reloaded and Update broadcast to followers');
+	} catch (err: any) {
+		console.error('Bot profile reloaded but broadcast failed:', err.message);
+	}
 }
 
 // Get a session for publishing
