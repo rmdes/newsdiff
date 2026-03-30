@@ -81,7 +81,7 @@ export const actions = {
 		if (bskyPostPrefix !== undefined) profile.bskyPostPrefix = bskyPostPrefix;
 		if (bskyPostSuffix !== undefined) profile.bskyPostSuffix = bskyPostSuffix;
 
-		// Handle avatar upload
+		// Handle avatar upload (cache-bust with timestamp so federated instances re-fetch)
 		const avatar = formData.get('avatar') as File | null;
 		if (avatar && avatar.size > 0) {
 			const result = await processUpload(avatar, 'avatar');
@@ -109,6 +109,15 @@ export const actions = {
 			}
 		}
 		profile.fields = fields;
+
+		// Refresh cache busters on image URLs so federated instances re-fetch them
+		const cacheBust = `v=${Date.now()}`;
+		if (profile.avatarUrl) {
+			profile.avatarUrl = profile.avatarUrl.replace(/\?v=\d+$/, '') + `?${cacheBust}`;
+		}
+		if (profile.headerUrl) {
+			profile.headerUrl = profile.headerUrl.replace(/\?v=\d+$/, '') + `?${cacheBust}`;
+		}
 
 		await saveBotProfile(profile);
 
