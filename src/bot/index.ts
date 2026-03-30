@@ -209,9 +209,8 @@ ${links[0]}${links[1] ? text` · ${links[1]}` : text``}${links[2] ? text` · ${l
 
 // Start the bot HTTP server (called from start.sh, not at import time)
 export function startBotServer() {
-	const bot = getBot();
+	getBot(); // ensure initial bot is created
 	const BOT_PORT = Number(process.env.BOT_PORT) || 8001;
-	const botFetch = bot.fetch;
 
 	const server = createServer(async (req, res) => {
 		const url = new URL(req.url || "/", `http://${req.headers.host}`);
@@ -234,7 +233,7 @@ export function startBotServer() {
 		});
 
 		try {
-			const response = await botFetch(request);
+			const response = await getBot().fetch(request);
 
 			res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
 			if (response.body) {
