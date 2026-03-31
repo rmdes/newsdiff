@@ -37,7 +37,6 @@ function loadFont(): { data: Buffer; name: string; weight: 400; style: 'normal' 
  * Extracts a window of text around the first change for the card.
  */
 function parseDiffToElements(diffHtml: string, maxLength: number = 600): any[] {
-	// Strip the wrapper divs
 	const html = diffHtml
 		.replace(/<div class="diff-(?:title|content)">/g, '')
 		.replace(/<\/div>/g, '')
@@ -46,7 +45,6 @@ function parseDiffToElements(diffHtml: string, maxLength: number = 600): any[] {
 		.replace(/&gt;/g, '>')
 		.replace(/&quot;/g, '"');
 
-	// Parse into segments: text, <ins>...</ins>, <del>...</del>
 	const segments: { type: 'text' | 'ins' | 'del'; value: string }[] = [];
 	const regex = /<(ins|del)>(.*?)<\/\1>/gs;
 	let lastIndex = 0;
@@ -62,16 +60,26 @@ function parseDiffToElements(diffHtml: string, maxLength: number = 600): any[] {
 		segments.push({ type: 'text', value: html.slice(lastIndex) });
 	}
 
-	// Find the first change and build a window around it
 	const firstChangeIdx = segments.findIndex(s => s.type !== 'text');
 	if (firstChangeIdx === -1) return [{ type: 'span', props: { children: '(no visible changes)' } }];
 
-	// Collect segments around the first change, respecting maxLength
-	let totalLen = 0;
-	const start = Math.max(0, firstChangeIdx - 1);
+	// Show brief context (max 80 chars) before the change, then prioritize the diff content
+	const contextMax = 80;
 	const windowSegments: typeof segments = [];
+	let totalLen = 0;
 
-	for (let i = start; i < segments.length && totalLen < maxLength; i++) {
+	// Add brief leading context
+	if (firstChangeIdx > 0) {
+		const leadText = segments[firstChangeIdx - 1].value;
+		const context = leadText.length > contextMax
+			? '...' + leadText.slice(-contextMax)
+			: leadText;
+		windowSegments.push({ type: 'text', value: context });
+		totalLen += context.length;
+	}
+
+	// Fill the rest with change segments and their surrounding text
+	for (let i = firstChangeIdx; i < segments.length && totalLen < maxLength; i++) {
 		const remaining = maxLength - totalLen;
 		const seg = { ...segments[i] };
 		if (seg.value.length > remaining) {
@@ -81,25 +89,17 @@ function parseDiffToElements(diffHtml: string, maxLength: number = 600): any[] {
 		totalLen += seg.value.length;
 	}
 
-	// If we skipped leading context, prepend ellipsis
-	if (start > 0) {
-		const leadText = segments[start - 1]?.value || '';
-		const tail = leadText.slice(-80);
-		if (tail) {
-			windowSegments.unshift({ type: 'text', value: '...' + tail });
-		}
-	}
-
 	return windowSegments.map((seg) => {
 		if (seg.type === 'ins') {
 			return {
 				type: 'span',
 				props: {
 					style: {
-						backgroundColor: '#d4edda',
-						color: '#155724',
-						padding: '1px 3px',
-						borderRadius: '2px'
+						backgroundColor: '#bbf7d0',
+						color: '#14532d',
+						padding: '2px 4px',
+						borderRadius: '3px',
+						fontWeight: '600'
 					},
 					children: seg.value
 				}
@@ -110,17 +110,17 @@ function parseDiffToElements(diffHtml: string, maxLength: number = 600): any[] {
 				type: 'span',
 				props: {
 					style: {
-						backgroundColor: '#f8d7da',
-						color: '#721c24',
+						backgroundColor: '#fecaca',
+						color: '#7f1d1d',
 						textDecoration: 'line-through',
-						padding: '1px 3px',
-						borderRadius: '2px'
+						padding: '2px 4px',
+						borderRadius: '3px'
 					},
 					children: seg.value
 				}
 			};
 		}
-		return { type: 'span', props: { children: seg.value } };
+		return { type: 'span', props: { style: { color: '#6b7280' }, children: seg.value } };
 	});
 }
 
