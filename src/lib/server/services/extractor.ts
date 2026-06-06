@@ -1,11 +1,97 @@
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
+import { mf2 } from 'microformats-parser';
 import { createHash } from 'node:crypto';
 
 export interface ExtractedArticle {
 	title: string;
 	byline: string | null;
 	content: string;
+}
+
+/** Reference properties whose target (URL) is part of the post's content. */
+const REFERENCE_PROPERTIES = ['bookmark-of', 'repost-of', 'in-reply-to', 'like-of'] as const;
+
+/** Extract the text of an mf2 property value (string, {value}, or h-* object). */
+function propertyText(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (value && typeof value === 'object' && typeof (value as { value?: unknown }).value === 'string') {
+		return (value as { value: string }).value;
+	}
+	return '';
+}
+
+/** Extract the canonical URL from an mf2 reference (h-cite object or bare URL string). */
+function referenceUrl(reference: unknown): string {
+	if (typeof reference === 'string') return reference;
+	if (reference && typeof reference === 'object') {
+		const url = (reference as { properties?: { url?: unknown[] } }).properties?.url?.[0];
+		if (typeof url === 'string') return url;
+	}
+	return '';
+}
+
+/**
+ * Extract content from microformats2 (IndieWeb h-entry) markup.
+ *
+ * This is the primary path for sites that publish mf2 (e.g. Indiekit/Eleventy
+ * IndieWeb sites). It reads the post's MARKED properties — title (p-name),
+ * body (e-content) and referenced target (u-bookmark-of / u-repost-of /
+ * u-in-reply-to / u-like-of) — which structurally excludes page chrome
+ * (navigation, AI-usage widgets, permalinks, dates) that readability-style
+ * extractors otherwise scrape into the content of short posts.
+ *
+ * Returns null when the page has no usable h-entry, so the caller falls back
+ * to Defuddle/Readability for non-mf2 sites (e.g. real news outlets).
+ */
+function extractFromMicroformats(html: string, url: string): ExtractedArticle | null {
+	let parsed;
+	try {
+		parsed = mf2(html, { baseUrl: url });
+	} catch {
+		return null;
+	}
+
+	const entries = parsed.items.filter((item) => item.type?.includes('h-entry'));
+	if (entries.length === 0) return null;
+
+	// Prefer the entry whose own URL matches the page; otherwise take the first.
+	const stripSlash = (u: string) => u.replace(/\/+$/, '');
+	const entry =
+		entries.find((e) =>
+			(e.properties.url as unknown[] | undefined)?.some(
+				(u) => typeof u === 'string' && stripSlash(u) === stripSlash(url)
+			)
+		) ?? entries[0];
+
+	const props = entry.properties as Record<string, unknown[]>;
+
+	const title = propertyText(props.name?.[0]).replace(/\s+/g, ' ').trim();
+	const byline = propertyText(props.author?.[0]).trim() || null;
+
+	const parts: string[] = [];
+	const body = propertyText(props.content?.[0]).trim();
+	if (body) parts.push(body);
+
+	for (const key of REFERENCE_PROPERTIES) {
+		const refs = props[key];
+		if (!Array.isArray(refs)) continue;
+		for (const ref of refs) {
+			const refUrl = referenceUrl(ref);
+			if (refUrl) parts.push(refUrl);
+		}
+	}
+
+	const content = parts
+		.join('\n\n')
+		.replace(/[ \t]+/g, ' ')
+		.replace(/\n{3,}/g, '\n\n')
+		.trim();
+
+	// No body and no reference target — nothing meaningful; let the caller fall back.
+	if (!content) return null;
+
+	return { title, byline, content };
 }
 
 /**
@@ -30,10 +116,16 @@ function looksLikeFeedListing(text: string): boolean {
 }
 
 /**
- * Extract article using Defuddle (primary) with Readability fallback.
+ * Extract article content. Tries microformats2 (h-entry) first for IndieWeb
+ * sites, then Defuddle, then Readability for plain news pages.
  */
 export async function extractArticle(html: string, url: string): Promise<ExtractedArticle | null> {
-	// Try Defuddle first
+	// Microformats2 first: IndieWeb sites mark the real post content explicitly,
+	// so reading mf2 properties avoids scraping page chrome into short posts.
+	const mf2Result = extractFromMicroformats(html, url);
+	if (mf2Result) return mf2Result;
+
+	// Try Defuddle next (for non-mf2 sites)
 	try {
 		const { Defuddle } = await import('defuddle/node');
 		const result = await Defuddle(html, url);
