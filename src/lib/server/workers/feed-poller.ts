@@ -5,7 +5,7 @@ import { feeds, articles, versions, diffs } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { fetchAndParseFeed } from '../services/feed-parser';
 import { extractArticle, computeHash } from '../services/extractor';
-import { computeDiff, isBoring } from '../services/differ';
+import { evaluateChange } from '../services/differ';
 import { archiveUrl, isArchiveEnabled } from '../services/archive';
 
 export interface FeedPollJobData {
@@ -36,7 +36,7 @@ async function fetchWithUA(url: string): Promise<Response> {
 	}
 }
 
-async function processArticle(articleUrl: string, feedId: number) {
+async function processArticle(articleUrl: string, feed: typeof feeds.$inferSelect) {
 	const response = await fetchWithUA(articleUrl);
 	if (!response.ok) return;
 
@@ -57,7 +57,7 @@ async function processArticle(articleUrl: string, feedId: number) {
 	// Find or create article record (upsert to handle concurrent inserts and redirected URLs)
 	const [article] = await db
 		.insert(articles)
-		.values({ feedId, url: finalUrl })
+		.values({ feedId: feed.id, url: finalUrl })
 		.onConflictDoUpdate({
 			target: articles.url,
 			set: { lastCheckedAt: new Date() }
@@ -110,24 +110,13 @@ async function processArticle(articleUrl: string, feedId: number) {
 
 	// Compute diff if not first version
 	if (latestVersion) {
-		const titleChanged = latestVersion.title !== extracted.title;
-		const contentChanged = latestVersion.contentHash !== contentHash;
-
-		const titleDiff = titleChanged
-			? computeDiff(latestVersion.title || '', extracted.title)
-			: { html: '', charsAdded: 0, charsRemoved: 0 };
-		const contentDiffResult = computeDiff(latestVersion.contentText, extracted.content);
-
-		const fullDiffHtml = [
-			titleChanged ? `<div class="diff-title">${titleDiff.html}</div>` : '',
-			`<div class="diff-content">${contentDiffResult.html}</div>`
-		]
-			.filter(Boolean)
-			.join('\n');
-
-		const boring =
-			isBoring(latestVersion.contentText, extracted.content) &&
-			(!titleChanged || isBoring(latestVersion.title || '', extracted.title));
+		const change = evaluateChange(
+			latestVersion.title,
+			latestVersion.contentText,
+			extracted.title,
+			extracted.content,
+			{ siteName: feed.siteName, ignoreTitleChanges: feed.ignoreTitleChanges }
+		);
 
 		const [newDiff] = await db
 			.insert(diffs)
@@ -135,12 +124,12 @@ async function processArticle(articleUrl: string, feedId: number) {
 				articleId: article.id,
 				oldVersionId: latestVersion.id,
 				newVersionId: newVersion.id,
-				titleChanged,
-				contentChanged,
-				diffHtml: fullDiffHtml,
-				charsAdded: titleDiff.charsAdded + contentDiffResult.charsAdded,
-				charsRemoved: titleDiff.charsRemoved + contentDiffResult.charsRemoved,
-				isBoring: boring
+				titleChanged: change.titleChanged,
+				contentChanged: change.contentChanged,
+				diffHtml: change.diffHtml,
+				charsAdded: change.charsAdded,
+				charsRemoved: change.charsRemoved,
+				isBoring: change.isBoring
 			})
 			.returning();
 
@@ -149,8 +138,8 @@ async function processArticle(articleUrl: string, feedId: number) {
 			.set({ lastChangedAt: new Date() })
 			.where(eq(articles.id, article.id));
 
-		// Queue syndication if not boring
-		if (!boring) {
+		// Queue syndication only if this feed broadcasts and the diff is interesting
+		if (feed.syndicate && !change.isBoring) {
 			const { createQueues } = await import('./queues');
 			const { syndicateQueue } = createQueues();
 			await syndicateQueue.add(`syndicate-diff-${newDiff.id}`, { diffId: newDiff.id }, {
@@ -201,7 +190,7 @@ async function pollFeed(job: Job<FeedPollJobData>) {
 		for (const item of items) {
 
 			try {
-				await processArticle(item.url, feedId);
+				await processArticle(item.url, feed);
 			} catch (err: any) {
 				articleErrors++;
 				console.error(`Failed to process article ${item.url}: ${err.message || err}`);

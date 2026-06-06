@@ -56,6 +56,28 @@
 					{/if}
 				</div>
 
+				<form method="POST" action="?/settings" use:enhance class="feed-settings">
+					<input type="hidden" name="id" value={feed.id} />
+					<label title="Broadcast this feed's changes to Bluesky and the fediverse">
+						<input
+							type="checkbox"
+							name="syndicate"
+							checked={feed.syndicate}
+							onchange={(e) => e.currentTarget.form?.requestSubmit()}
+						/>
+						Syndicate changes
+					</label>
+					<label title="Treat title changes on this feed as noise (good for IndieWeb sites where the title is the site identity, not a headline)">
+						<input
+							type="checkbox"
+							name="ignoreTitleChanges"
+							checked={feed.ignoreTitleChanges}
+							onchange={(e) => e.currentTarget.form?.requestSubmit()}
+						/>
+						Ignore title changes
+					</label>
+				</form>
+
 				{#if feed.lastError}
 					<div class="feed-error">
 						<span class="error-badge">
@@ -101,6 +123,10 @@
 	.remove { background: none; border: none; color: var(--color-del-text); cursor: pointer; font-size: 0.8rem; }
 
 	.feed-meta { display: flex; gap: 1rem; font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; flex-wrap: wrap; }
+
+	.feed-settings { display: flex; gap: 1.25rem; margin-top: 0.6rem; flex-wrap: wrap; }
+	.feed-settings label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--color-text); cursor: pointer; }
+	.feed-settings input[type='checkbox'] { cursor: pointer; }
 
 	.feed-error {
 		margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.25rem;

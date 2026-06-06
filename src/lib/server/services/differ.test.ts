@@ -1,5 +1,94 @@
 import { describe, it, expect } from 'vitest';
-import { computeDiff, isBoring } from './differ';
+import { computeDiff, isBoring, isBoringTitleChange, evaluateChange } from './differ';
+
+describe('evaluateChange', () => {
+	it('reports a real headline + body edit as a non-boring change with both diff sections', () => {
+		const r = evaluateChange(
+			'Drones hit St Petersburg', 'Russia says 100 drones downed.',
+			'Drones target St Petersburg', 'Russia says 140 drones were downed over Leningrad.',
+			{ siteName: 'BBC News' }
+		);
+		expect(r.titleChanged).toBe(true);
+		expect(r.contentChanged).toBe(true);
+		expect(r.isBoring).toBe(false);
+		expect(r.diffHtml).toContain('diff-title');
+		expect(r.diffHtml).toContain('diff-content');
+	});
+
+	it('suppresses a site-identity title change but keeps the real content change', () => {
+		const r = evaluateChange(
+			'A Node on the Web', 'old body text here that is the note content',
+			'', 'new body text here that is the note content rewritten',
+			{ siteName: 'A Node on the Web' }
+		);
+		expect(r.titleChanged).toBe(false);              // identity noise, not a headline edit
+		expect(r.contentChanged).toBe(true);
+		expect(r.diffHtml).not.toContain('diff-title');  // no "A Node on the Web" title diff shown
+		expect(r.diffHtml).toContain('diff-content');
+		expect(r.isBoring).toBe(false);                  // content genuinely changed
+	});
+
+	it('honors a feed opting out of title tracking entirely', () => {
+		const r = evaluateChange(
+			'Real Headline One', 'body one',
+			'Real Headline Two', 'body two changed',
+			{ ignoreTitleChanges: true }
+		);
+		expect(r.titleChanged).toBe(false);
+		expect(r.diffHtml).not.toContain('diff-title');
+		expect(r.contentChanged).toBe(true);
+	});
+
+	it('marks a pure timestamp/whitespace change as boring', () => {
+		const r = evaluateChange(
+			'Headline', 'Posted 3:10 PM. The body is identical.',
+			'Headline', 'Posted 4:20 PM. The body is identical.',
+			{}
+		);
+		expect(r.isBoring).toBe(true);
+	});
+
+	it('is boring when title noise rides along with boring content', () => {
+		const r = evaluateChange(
+			'A Node on the Web', 'Same content.',
+			'', 'Same content.',
+			{ siteName: 'A Node on the Web' }
+		);
+		expect(r.titleChanged).toBe(false);
+		expect(r.isBoring).toBe(true);
+	});
+});
+
+describe('isBoringTitleChange', () => {
+	it('treats title removal (-> empty) as boring noise', () => {
+		// Titleless posts (notes/reposts) correctly extract an empty title.
+		expect(isBoringTitleChange('A Node on the Web', '')).toBe(true);
+	});
+
+	it('treats a change to/from the site identity as boring noise', () => {
+		// Renaming the site/feed identity must not look like a real headline edit.
+		expect(isBoringTitleChange('A Node on the Web', 'A New Identity', 'A Node on the Web')).toBe(true);
+		expect(isBoringTitleChange('Old Site Name', 'New Site Name', 'New Site Name')).toBe(true);
+	});
+
+	it('treats identical titles as boring', () => {
+		expect(isBoringTitleChange('Same Headline', 'Same Headline')).toBe(true);
+	});
+
+	it('treats timestamp-only title noise as boring', () => {
+		expect(isBoringTitleChange('Breaking news 3:10 PM', 'Breaking news 4:20 PM')).toBe(true);
+	});
+
+	it('does NOT suppress a real headline edit', () => {
+		// The whole point of the app — genuine headline changes must still count.
+		expect(isBoringTitleChange('Trump says X', 'Trump says Y', 'A Node on the Web')).toBe(false);
+	});
+
+	it('does NOT treat two distinct real headlines as boring', () => {
+		// neither side is the site identity, both non-empty -> real change
+		expect(isBoringTitleChange('Drones hit St Petersburg', 'Drones target St Petersburg')).toBe(false);
+	});
+});
 
 describe('computeDiff', () => {
 	it('detects word-level changes', () => {

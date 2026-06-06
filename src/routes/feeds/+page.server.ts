@@ -34,6 +34,17 @@ export const actions = {
 		return { success: true };
 	},
 
+	settings: async ({ request }) => {
+		const data = await request.formData();
+		const id = Number(data.get('id'));
+		if (!Number.isInteger(id)) return fail(400, { error: 'Invalid feed id' });
+		// Unchecked checkboxes are absent from form data.
+		const syndicate = data.get('syndicate') === 'on';
+		const ignoreTitleChanges = data.get('ignoreTitleChanges') === 'on';
+		await db.update(feeds).set({ syndicate, ignoreTitleChanges }).where(eq(feeds.id, id));
+		return { success: true };
+	},
+
 	toggle: async ({ request }) => {
 		const data = await request.formData();
 		const id = Number(data.get('id'));

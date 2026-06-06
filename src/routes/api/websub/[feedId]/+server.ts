@@ -6,7 +6,7 @@ import { feeds, articles, versions, diffs } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { parseFeedItems } from '$lib/server/services/feed-parser';
 import { extractArticle, computeHash } from '$lib/server/services/extractor';
-import { computeDiff, isBoring } from '$lib/server/services/differ';
+import { evaluateChange } from '$lib/server/services/differ';
 
 /**
  * WebSub verification callback (GET).
@@ -83,7 +83,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	let processed = 0;
 	for (const item of items) {
 		try {
-			await processArticlePush(item.url, feedId);
+			await processArticlePush(item.url, feed);
 			processed++;
 		} catch (err: any) {
 			console.error(`WebSub: failed to process ${item.url}: ${err.message}`);
@@ -99,7 +99,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
  * Process a single article from a WebSub push.
  * Mirrors the logic in feed-poller.ts processArticle().
  */
-async function processArticlePush(articleUrl: string, feedId: number) {
+async function processArticlePush(articleUrl: string, feed: typeof feeds.$inferSelect) {
 	const response = await fetch(articleUrl, {
 		headers: {
 			'User-Agent': 'NewsDiff/0.1 (+https://github.com/rmdes/newsdiff)',
@@ -124,7 +124,7 @@ async function processArticlePush(articleUrl: string, feedId: number) {
 
 	const [article] = await db
 		.insert(articles)
-		.values({ feedId, url: finalUrl })
+		.values({ feedId: feed.id, url: finalUrl })
 		.onConflictDoUpdate({ target: articles.url, set: { lastCheckedAt: new Date() } })
 		.returning();
 
@@ -157,22 +157,13 @@ async function processArticlePush(articleUrl: string, feedId: number) {
 		.returning();
 
 	if (latestVersion) {
-		const titleChanged = latestVersion.title !== extracted.title;
-		const contentChanged = latestVersion.contentHash !== contentHash;
-
-		const titleDiff = titleChanged
-			? computeDiff(latestVersion.title || '', extracted.title)
-			: { html: '', charsAdded: 0, charsRemoved: 0 };
-		const contentDiffResult = computeDiff(latestVersion.contentText, extracted.content);
-
-		const fullDiffHtml = [
-			titleChanged ? `<div class="diff-title">${titleDiff.html}</div>` : '',
-			`<div class="diff-content">${contentDiffResult.html}</div>`
-		].filter(Boolean).join('\n');
-
-		const boring =
-			isBoring(latestVersion.contentText, extracted.content) &&
-			(!titleChanged || isBoring(latestVersion.title || '', extracted.title));
+		const change = evaluateChange(
+			latestVersion.title,
+			latestVersion.contentText,
+			extracted.title,
+			extracted.content,
+			{ siteName: feed.siteName, ignoreTitleChanges: feed.ignoreTitleChanges }
+		);
 
 		const [newDiff] = await db
 			.insert(diffs)
@@ -180,18 +171,18 @@ async function processArticlePush(articleUrl: string, feedId: number) {
 				articleId: article.id,
 				oldVersionId: latestVersion.id,
 				newVersionId: newVersion.id,
-				titleChanged,
-				contentChanged,
-				diffHtml: fullDiffHtml,
-				charsAdded: titleDiff.charsAdded + contentDiffResult.charsAdded,
-				charsRemoved: titleDiff.charsRemoved + contentDiffResult.charsRemoved,
-				isBoring: boring
+				titleChanged: change.titleChanged,
+				contentChanged: change.contentChanged,
+				diffHtml: change.diffHtml,
+				charsAdded: change.charsAdded,
+				charsRemoved: change.charsRemoved,
+				isBoring: change.isBoring
 			})
 			.returning();
 
 		await db.update(articles).set({ lastChangedAt: new Date() }).where(eq(articles.id, article.id));
 
-		if (!boring) {
+		if (feed.syndicate && !change.isBoring) {
 			const { createQueues } = await import('$lib/server/workers/queues');
 			const { syndicateQueue } = createQueues();
 			await syndicateQueue.add(`syndicate-diff-${newDiff.id}`, { diffId: newDiff.id }, {
@@ -200,6 +191,6 @@ async function processArticlePush(articleUrl: string, feedId: number) {
 			});
 		}
 
-		console.log(`WebSub: diff ${newDiff.id} created for "${extracted.title}" (${boring ? 'boring' : 'non-boring'})`);
+		console.log(`WebSub: diff ${newDiff.id} created for "${extracted.title}" (${change.isBoring ? 'boring' : 'non-boring'})`);
 	}
 }

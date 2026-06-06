@@ -80,6 +80,112 @@ export function isBoring(oldText: string, newText: string): boolean {
 	return false;
 }
 
+/**
+ * Determines if a TITLE change is "boring" — identity/metadata noise rather than
+ * a real headline edit, and therefore should not be shown or syndicated.
+ *
+ * Boring title changes include:
+ *  - no real change (whitespace/case only)
+ *  - the title being removed (titleless posts like notes/reposts -> empty)
+ *  - the site/feed identity appearing on either side (renaming your site must not
+ *    look like a headline edit on every article)
+ *  - timestamp/date noise (delegated to isBoring)
+ *
+ * Real outlet headline edits (both sides non-empty, neither is the site identity)
+ * are NOT boring — they are the whole point of the app.
+ */
+export function isBoringTitleChange(oldTitle: string, newTitle: string, siteName?: string): boolean {
+	const norm = (s: string | null | undefined) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+	const oldN = norm(oldTitle);
+	const newN = norm(newTitle);
+	const siteN = norm(siteName);
+
+	// No meaningful change.
+	if (oldN === newN) return true;
+
+	// Title removed — the post is genuinely titleless; not a headline edit.
+	if (newN === '') return true;
+
+	// Site/feed identity leaking into (or out of) the title field.
+	if (siteN && (oldN === siteN || newN === siteN)) return true;
+
+	// Timestamp / relative-time / date noise.
+	return isBoring(oldTitle || '', newTitle || '');
+}
+
+/**
+ * Per-feed noise policy. Extension point: add `boringTitlePatterns`,
+ * `boringContentPatterns`, etc. here to let users define their own "boring"
+ * elements per monitored site — evaluateChange() is the single place that
+ * applies them, so the poller and WebSub handler stay in sync.
+ */
+export interface FeedPolicy {
+	siteName?: string | null;
+	/** When true, title changes on this feed are never treated as real edits. */
+	ignoreTitleChanges?: boolean;
+}
+
+export interface ChangeEvaluation {
+	titleChanged: boolean;
+	contentChanged: boolean;
+	diffHtml: string;
+	charsAdded: number;
+	charsRemoved: number;
+	isBoring: boolean;
+}
+
+/**
+ * Single source of truth for turning an old/new version into a diff record:
+ * decides whether the title change is meaningful (vs identity/noise or opted
+ * out per feed), builds the diff HTML, and computes whether the whole diff is
+ * "boring" (and therefore must not be shown or syndicated).
+ *
+ * Both feed-poller and the WebSub push handler call this so their behavior
+ * cannot drift.
+ */
+export function evaluateChange(
+	oldTitle: string | null | undefined,
+	oldContent: string,
+	newTitle: string | null | undefined,
+	newContent: string,
+	policy: FeedPolicy = {}
+): ChangeEvaluation {
+	const oldT = oldTitle || '';
+	const newT = newTitle || '';
+
+	const titleRawChanged = oldT !== newT;
+	const titleIsNoise =
+		policy.ignoreTitleChanges === true || isBoringTitleChange(oldT, newT, policy.siteName ?? undefined);
+	const titleChanged = titleRawChanged && !titleIsNoise;
+
+	const contentChanged = oldContent !== newContent;
+
+	const titleDiff = titleChanged
+		? computeDiff(oldT, newT)
+		: { html: '', charsAdded: 0, charsRemoved: 0 };
+	const contentDiff = computeDiff(oldContent, newContent);
+
+	const diffHtml = [
+		titleChanged ? `<div class="diff-title">${titleDiff.html}</div>` : '',
+		`<div class="diff-content">${contentDiff.html}</div>`
+	]
+		.filter(Boolean)
+		.join('\n');
+
+	// A diff is boring only if its content change is boring AND its title change
+	// is absent/noise. Real headline edits or real body edits keep it interesting.
+	const isBoringResult = isBoring(oldContent, newContent) && !titleChanged;
+
+	return {
+		titleChanged,
+		contentChanged,
+		diffHtml,
+		charsAdded: titleDiff.charsAdded + contentDiff.charsAdded,
+		charsRemoved: titleDiff.charsRemoved + contentDiff.charsRemoved,
+		isBoring: isBoringResult
+	};
+}
+
 function escapeHtml(text: string): string {
 	return text
 		.replace(/&/g, '&amp;')

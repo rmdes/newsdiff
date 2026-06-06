@@ -8,6 +8,11 @@ export const feeds = pgTable('feeds', {
 	siteName: text('site_name'),
 	checkInterval: integer('check_interval').notNull().default(5),
 	isActive: boolean('is_active').notNull().default(true),
+	// Broadcast this feed's changes to Bluesky/fediverse. Off = track quietly.
+	syndicate: boolean('syndicate').notNull().default(true),
+	// Treat all title changes on this feed as noise (e.g. IndieWeb sites where the
+	// title is identity, not a headline).
+	ignoreTitleChanges: boolean('ignore_title_changes').notNull().default(false),
 	lastError: text('last_error'),
 	lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
 	consecutiveErrors: integer('consecutive_errors').notNull().default(0),
