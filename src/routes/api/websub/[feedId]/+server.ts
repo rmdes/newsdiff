@@ -8,6 +8,8 @@ import { parseFeedItems } from '$lib/server/services/feed-parser';
 import { extractArticle, computeHash } from '$lib/server/services/extractor';
 import { evaluateChange } from '$lib/server/services/differ';
 
+const LIVE_BLOG_SNAPSHOT_MS = 30 * 60 * 1000;
+
 /**
  * WebSub verification callback (GET).
  * The hub sends a challenge that we echo back to confirm our subscription.
@@ -124,8 +126,11 @@ async function processArticlePush(articleUrl: string, feed: typeof feeds.$inferS
 
 	const [article] = await db
 		.insert(articles)
-		.values({ feedId: feed.id, url: finalUrl })
-		.onConflictDoUpdate({ target: articles.url, set: { lastCheckedAt: new Date() } })
+		.values({ feedId: feed.id, url: finalUrl, isLiveBlog: extracted.isLiveBlog })
+		.onConflictDoUpdate({
+			target: articles.url,
+			set: { lastCheckedAt: new Date(), ...(extracted.isLiveBlog ? { isLiveBlog: true } : {}) }
+		})
 		.returning();
 
 	const [latestVersion] = await db
@@ -141,6 +146,14 @@ async function processArticlePush(articleUrl: string, feed: typeof feeds.$inferS
 		.where(eq(articles.id, article.id));
 
 	if (latestVersion && latestVersion.contentHash === contentHash) return;
+
+	if (
+		extracted.isLiveBlog &&
+		latestVersion &&
+		Date.now() - latestVersion.createdAt.getTime() < LIVE_BLOG_SNAPSHOT_MS
+	) {
+		return;
+	}
 
 	const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
 
@@ -166,7 +179,7 @@ async function processArticlePush(articleUrl: string, feed: typeof feeds.$inferS
 			latestVersion.contentText,
 			extracted.title,
 			extracted.content,
-			{ siteName: feed.siteName, ignoreTitleChanges: feed.ignoreTitleChanges }
+			{ siteName: feed.siteName, ignoreTitleChanges: feed.ignoreTitleChanges, isLiveBlog: extracted.isLiveBlog }
 		);
 
 		const [newDiff] = await db
