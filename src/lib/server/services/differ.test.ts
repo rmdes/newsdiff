@@ -57,6 +57,42 @@ describe('evaluateChange', () => {
 		expect(r.titleChanged).toBe(false);
 		expect(r.isBoring).toBe(true);
 	});
+
+	it('marks a live-blog pure append as boring', () => {
+		const r = evaluateChange(
+			'', 'Entry one. Entry two.',
+			'', 'Entry one. Entry two. Entry three.',
+			{ isLiveBlog: true }
+		);
+		expect(r.isBoring).toBe(true);
+	});
+
+	it('marks a live-blog append-with-ticking-timers as boring', () => {
+		const r = evaluateChange(
+			'', 'DRS enabled 18m ago. Lights out 1h ago.',
+			'', 'Crash 2m ago. DRS enabled 27m ago. Lights out 2h ago.',
+			{ isLiveBlog: true }
+		);
+		expect(r.isBoring).toBe(true);
+	});
+
+	it('keeps a live-blog edit of a past entry visible (not boring)', () => {
+		const r = evaluateChange(
+			'', 'DRS enabled 18m ago. Lights out 1h ago.',
+			'', 'DRS disabled 27m ago. Lights out 2h ago.',
+			{ isLiveBlog: true }
+		);
+		expect(r.isBoring).toBe(false);
+	});
+
+	it('does NOT treat a regular-article addition as boring', () => {
+		const r = evaluateChange(
+			'', 'Para one.',
+			'', 'Para one. Para two added later.',
+			{}
+		);
+		expect(r.isBoring).toBe(false);
+	});
 });
 
 describe('isBoringTitleChange', () => {

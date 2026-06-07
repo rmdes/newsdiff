@@ -158,6 +158,8 @@ export interface FeedPolicy {
 	siteName?: string | null;
 	/** When true, title changes on this feed are never treated as real edits. */
 	ignoreTitleChanges?: boolean;
+	/** When true (per-article), pure-append content changes are boring. */
+	isLiveBlog?: boolean;
 }
 
 export interface ChangeEvaluation {
@@ -207,9 +209,12 @@ export function evaluateChange(
 		.filter(Boolean)
 		.join('\n');
 
-	// A diff is boring only if its content change is boring AND its title change
-	// is absent/noise. Real headline edits or real body edits keep it interesting.
-	const isBoringResult = isBoring(oldContent, newContent) && !titleChanged;
+	// A diff is boring when its content change is noise (timestamps, or — for live
+	// blogs — a pure append of new entries) AND its title change is absent/noise.
+	const contentBoring =
+		isBoring(oldContent, newContent) ||
+		(policy.isLiveBlog === true && isPureAddition(oldContent, newContent));
+	const isBoringResult = contentBoring && !titleChanged;
 
 	return {
 		titleChanged,
