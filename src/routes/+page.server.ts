@@ -65,7 +65,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				boringCount: allDiffs.filter(d => d.isBoring).length
 			};
 		})
-		.filter(Boolean)
+		.filter((g): g is NonNullable<typeof g> => g !== null)
 		.slice(0, perPage);
 
 	const allFeeds = await db.select().from(feeds).orderBy(feeds.name);
