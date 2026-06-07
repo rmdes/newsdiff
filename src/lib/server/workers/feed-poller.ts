@@ -97,7 +97,12 @@ async function processArticle(articleUrl: string, feed: typeof feeds.$inferSelec
 			contentHash,
 			versionNumber
 		})
+		.onConflictDoNothing({ target: [versions.articleId, versions.versionNumber] })
 		.returning();
+
+	// Lost a race: another concurrent poll of the same URL already inserted this
+	// version number. It will (or already did) record the diff, so bail.
+	if (!newVersion) return;
 
 	// Archive this version on the Wayback Machine (fire-and-forget, requires credentials)
 	if (isArchiveEnabled()) {

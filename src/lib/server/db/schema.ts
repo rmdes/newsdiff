@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, boolean, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const feeds = pgTable('feeds', {
@@ -43,7 +43,11 @@ export const versions = pgTable('versions', {
 	versionNumber: integer('version_number').notNull(),
 	archiveUrl: text('archive_url'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-});
+}, (t) => ({
+	// One version per (article, versionNumber). Closes the race where two
+	// concurrent polls of the same URL both insert the "next" version.
+	articleVersionUnq: uniqueIndex('versions_article_version_unq').on(t.articleId, t.versionNumber)
+}));
 
 export const diffs = pgTable('diffs', {
 	id: serial('id').primaryKey(),

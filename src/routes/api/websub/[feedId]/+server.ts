@@ -154,7 +154,11 @@ async function processArticlePush(articleUrl: string, feed: typeof feeds.$inferS
 			contentHash,
 			versionNumber
 		})
+		.onConflictDoNothing({ target: [versions.articleId, versions.versionNumber] })
 		.returning();
+
+	// Lost a race with a concurrent poll/push that already inserted this version.
+	if (!newVersion) return;
 
 	if (latestVersion) {
 		const change = evaluateChange(
