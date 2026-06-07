@@ -89,6 +89,33 @@ export function isBoring(oldText: string, newText: string): boolean {
 }
 
 /**
+ * True when newText only ADDS to oldText — every previously-published character
+ * is still present, with new text inserted (prepend or append). Comparison runs
+ * on time-stripped/normalized text so ticking relative timers on older entries
+ * (common in live blogs) don't defeat detection. An edit or deletion of existing
+ * text returns false.
+ */
+export function isPureAddition(oldText: string, newText: string): boolean {
+	const o = normalizeForCompare(oldText);
+	const n = normalizeForCompare(newText);
+	if (o.length === 0 || o === n) return true;
+
+	let start = 0;
+	while (start < o.length && start < n.length && o[start] === n[start]) start++;
+
+	let oEnd = o.length;
+	let nEnd = n.length;
+	while (oEnd > start && nEnd > start && o[oEnd - 1] === n[nEnd - 1]) {
+		oEnd--;
+		nEnd--;
+	}
+
+	// If nothing of OLD remains between the shared prefix and suffix, only new
+	// text was inserted — a pure addition.
+	return o.slice(start, oEnd).trim().length === 0;
+}
+
+/**
  * Determines if a TITLE change is "boring" — identity/metadata noise rather than
  * a real headline edit, and therefore should not be shown or syndicated.
  *

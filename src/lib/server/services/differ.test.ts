@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeDiff, isBoring, isBoringTitleChange, evaluateChange } from './differ';
+import { computeDiff, isBoring, isBoringTitleChange, evaluateChange, isPureAddition } from './differ';
 
 describe('evaluateChange', () => {
 	it('reports a real headline + body edit as a non-boring change with both diff sections', () => {
@@ -216,5 +216,34 @@ describe('isBoring', () => {
 		const old = 'Content.\n\nPublished 12:39';
 		const new_ = 'Content.\n\nUpdated 15:10';
 		expect(isBoring(old, new_)).toBe(true);
+	});
+});
+
+describe('isPureAddition', () => {
+	it('true for a pure append', () => {
+		expect(isPureAddition('Entry one. Entry two.', 'Entry one. Entry two. Entry three.')).toBe(true);
+	});
+	it('true for a pure prepend (reverse-chron live blog)', () => {
+		expect(isPureAddition('Entry one. Entry two.', 'Entry zero. Entry one. Entry two.')).toBe(true);
+	});
+	it('false when an existing entry is edited', () => {
+		expect(isPureAddition('DRS enabled. Lights out.', 'DRS disabled. Lights out.')).toBe(false);
+	});
+	it('false when an existing entry is deleted', () => {
+		expect(isPureAddition('Entry one. Entry two. Entry three.', 'Entry one. Entry three.')).toBe(false);
+	});
+	it('true for identical or empty-old', () => {
+		expect(isPureAddition('same', 'same')).toBe(true);
+		expect(isPureAddition('', 'brand new content')).toBe(true);
+	});
+	it('true for a prepend even when older entries’ timers ticked', () => {
+		const old = 'DRS enabled 18m ago. Lights out 1h ago.';
+		const new_ = 'Crash at turn 1 2m ago. DRS enabled 27m ago. Lights out 2h ago.';
+		expect(isPureAddition(old, new_)).toBe(true);
+	});
+	it('false for an edit even when timers also ticked', () => {
+		const old = 'DRS enabled 18m ago. Lights out 1h ago.';
+		const new_ = 'DRS disabled 27m ago. Lights out 2h ago.';
+		expect(isPureAddition(old, new_)).toBe(false);
 	});
 });
