@@ -16,6 +16,7 @@ export interface FeedPollJobData {
 const USER_AGENT = 'NewsDiff/0.1 (+https://github.com/newsdiff; RSS feed monitor)';
 const MAX_CONSECUTIVE_ERRORS = 5;
 const FETCH_TIMEOUT = 15000; // 15 seconds
+const LIVE_BLOG_SNAPSHOT_MS = 30 * 60 * 1000; // coalesce live-blog updates into ~30-min snapshots
 
 async function fetchWithUA(url: string): Promise<Response> {
 	const controller = new AbortController();
@@ -57,10 +58,13 @@ async function processArticle(articleUrl: string, feed: typeof feeds.$inferSelec
 	// Find or create article record (upsert to handle concurrent inserts and redirected URLs)
 	const [article] = await db
 		.insert(articles)
-		.values({ feedId: feed.id, url: finalUrl })
+		.values({ feedId: feed.id, url: finalUrl, isLiveBlog: extracted.isLiveBlog })
 		.onConflictDoUpdate({
 			target: articles.url,
-			set: { lastCheckedAt: new Date() }
+			set: {
+				lastCheckedAt: new Date(),
+				...(extracted.isLiveBlog ? { isLiveBlog: true } : {})
+			}
 		})
 		.returning();
 
@@ -83,6 +87,15 @@ async function processArticle(articleUrl: string, feed: typeof feeds.$inferSelec
 
 	if (latestVersion && latestVersion.contentHash === contentHash) {
 		return; // No change
+	}
+
+	// Live blogs change constantly by design — snapshot at most every 30 min.
+	if (
+		extracted.isLiveBlog &&
+		latestVersion &&
+		Date.now() - latestVersion.createdAt.getTime() < LIVE_BLOG_SNAPSHOT_MS
+	) {
+		return;
 	}
 
 	const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
@@ -120,7 +133,7 @@ async function processArticle(articleUrl: string, feed: typeof feeds.$inferSelec
 			latestVersion.contentText,
 			extracted.title,
 			extracted.content,
-			{ siteName: feed.siteName, ignoreTitleChanges: feed.ignoreTitleChanges }
+			{ siteName: feed.siteName, ignoreTitleChanges: feed.ignoreTitleChanges, isLiveBlog: extracted.isLiveBlog }
 		);
 
 		const [newDiff] = await db
