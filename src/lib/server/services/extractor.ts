@@ -7,6 +7,20 @@ export interface ExtractedArticle {
 	title: string;
 	byline: string | null;
 	content: string;
+	isLiveBlog: boolean;
+}
+
+type ExtractedContent = Omit<ExtractedArticle, 'isLiveBlog'>;
+
+/** Detect a live blog generically: schema.org LiveBlogPosting, or a /live/ URL path. */
+export function detectLiveBlog(html: string, url: string): boolean {
+	if (html.includes('"LiveBlogPosting"')) return true;
+	try {
+		if (new URL(url).pathname.split('/').includes('live')) return true;
+	} catch {
+		// invalid URL — ignore
+	}
+	return false;
 }
 
 /** Reference properties whose target (URL) is part of the post's content. */
@@ -44,7 +58,7 @@ function referenceUrl(reference: unknown): string {
  * Returns null when the page has no usable h-entry, so the caller falls back
  * to Defuddle/Readability for non-mf2 sites (e.g. real news outlets).
  */
-function extractFromMicroformats(html: string, url: string): ExtractedArticle | null {
+function extractFromMicroformats(html: string, url: string): ExtractedContent | null {
 	let parsed;
 	try {
 		parsed = mf2(html, { baseUrl: url });
@@ -120,6 +134,12 @@ function looksLikeFeedListing(text: string): boolean {
  * sites, then Defuddle, then Readability for plain news pages.
  */
 export async function extractArticle(html: string, url: string): Promise<ExtractedArticle | null> {
+	const content = await extractContent(html, url);
+	if (!content) return null;
+	return { ...content, isLiveBlog: detectLiveBlog(html, url) };
+}
+
+async function extractContent(html: string, url: string): Promise<ExtractedContent | null> {
 	// Microformats2 first: IndieWeb sites mark the real post content explicitly,
 	// so reading mf2 properties avoids scraping page chrome into short posts.
 	const mf2Result = extractFromMicroformats(html, url);
@@ -148,7 +168,7 @@ export async function extractArticle(html: string, url: string): Promise<Extract
 	return extractWithReadability(html, url);
 }
 
-function extractWithReadability(html: string, url: string): ExtractedArticle | null {
+function extractWithReadability(html: string, url: string): ExtractedContent | null {
 	const dom = new JSDOM(html, { url });
 	const reader = new Readability(dom.window.document);
 	const article = reader.parse();

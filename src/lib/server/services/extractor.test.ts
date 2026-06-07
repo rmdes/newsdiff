@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractArticle, normalizeText, computeHash } from './extractor';
+import { extractArticle, normalizeText, computeHash, detectLiveBlog } from './extractor';
 
 describe('extractArticle', () => {
 	it('extracts title and structured content from HTML', async () => {
@@ -96,6 +96,27 @@ describe('extractArticle', () => {
 		expect(result!.content).not.toContain('Learn more about AI usage');
 		expect(result!.content).not.toContain('Permalink');
 		expect(result!.content).not.toContain('19 May 2026');
+	});
+});
+
+describe('detectLiveBlog', () => {
+	it('detects schema.org LiveBlogPosting in JSON-LD', () => {
+		const html = '<html><head><script type="application/ld+json">{"@type":"LiveBlogPosting"}</script></head><body></body></html>';
+		expect(detectLiveBlog(html, 'https://example.com/x')).toBe(true);
+	});
+	it('detects LiveBlogPosting inside a @type array', () => {
+		const html = '<script type="application/ld+json">{"@type":["LiveBlogPosting","NewsArticle"]}</script>';
+		expect(detectLiveBlog(html, 'https://example.com/x')).toBe(true);
+	});
+	it('treats a NewsArticle as not a live blog', () => {
+		const html = '<script type="application/ld+json">{"@type":"NewsArticle"}</script>';
+		expect(detectLiveBlog(html, 'https://example.com/news/story')).toBe(false);
+	});
+	it('detects a /live/ URL path as fallback', () => {
+		expect(detectLiveBlog('<html></html>', 'https://www.theguardian.com/sport/live/2026/jun/07/race')).toBe(true);
+	});
+	it('does not false-positive on "live" inside a word', () => {
+		expect(detectLiveBlog('<html></html>', 'https://example.com/delivery/123')).toBe(false);
 	});
 });
 
