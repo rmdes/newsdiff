@@ -4,7 +4,7 @@ import { db } from '../db';
 import { feeds, articles, versions, diffs } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { fetchAndParseFeed } from '../services/feed-parser';
-import { extractArticle, computeHash } from '../services/extractor';
+import { extractArticle, computeHash, LIVE_BLOG_SNAPSHOT_MS } from '../services/extractor';
 import { evaluateChange } from '../services/differ';
 import { archiveUrl, isArchiveEnabled } from '../services/archive';
 
@@ -16,7 +16,6 @@ export interface FeedPollJobData {
 const USER_AGENT = 'NewsDiff/0.1 (+https://github.com/newsdiff; RSS feed monitor)';
 const MAX_CONSECUTIVE_ERRORS = 5;
 const FETCH_TIMEOUT = 15000; // 15 seconds
-const LIVE_BLOG_SNAPSHOT_MS = 30 * 60 * 1000; // coalesce live-blog updates into ~30-min snapshots
 
 async function fetchWithUA(url: string): Promise<Response> {
 	const controller = new AbortController();

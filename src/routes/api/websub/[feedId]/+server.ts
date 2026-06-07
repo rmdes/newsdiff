@@ -5,10 +5,8 @@ import { db } from '$lib/server/db';
 import { feeds, articles, versions, diffs } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { parseFeedItems } from '$lib/server/services/feed-parser';
-import { extractArticle, computeHash } from '$lib/server/services/extractor';
+import { extractArticle, computeHash, LIVE_BLOG_SNAPSHOT_MS } from '$lib/server/services/extractor';
 import { evaluateChange } from '$lib/server/services/differ';
-
-const LIVE_BLOG_SNAPSHOT_MS = 30 * 60 * 1000;
 
 /**
  * WebSub verification callback (GET).

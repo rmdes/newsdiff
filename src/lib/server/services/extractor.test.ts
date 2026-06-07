@@ -118,6 +118,10 @@ describe('detectLiveBlog', () => {
 	it('does not false-positive on "live" inside a word', () => {
 		expect(detectLiveBlog('<html></html>', 'https://example.com/delivery/123')).toBe(false);
 	});
+	it('does NOT flag an article that merely mentions LiveBlogPosting in body text', () => {
+		const html = '<html><body><article><p>The site uses an @type of "LiveBlogPosting" in its schema.</p></article></body></html>';
+		expect(detectLiveBlog(html, 'https://example.com/news/story')).toBe(false);
+	});
 });
 
 describe('normalizeText', () => {

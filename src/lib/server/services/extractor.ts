@@ -12,9 +12,15 @@ export interface ExtractedArticle {
 
 type ExtractedContent = Omit<ExtractedArticle, 'isLiveBlog'>;
 
+/** Coalesce live-blog updates into snapshots at most this often. */
+export const LIVE_BLOG_SNAPSHOT_MS = 30 * 60 * 1000;
+
 /** Detect a live blog generically: schema.org LiveBlogPosting, or a /live/ URL path. */
 export function detectLiveBlog(html: string, url: string): boolean {
-	if (html.includes('"LiveBlogPosting"')) return true;
+	// schema.org LiveBlogPosting, but only within JSON-LD <script> blocks (not body prose)
+	const ldScripts = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) ?? [];
+	if (ldScripts.some((s) => s.includes('"LiveBlogPosting"'))) return true;
+	// Fallback: a /live/ path segment
 	try {
 		if (new URL(url).pathname.split('/').includes('live')) return true;
 	} catch {
