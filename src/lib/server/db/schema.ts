@@ -30,7 +30,8 @@ export const articles = pgTable('articles', {
 	firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
 	lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
 	lastChangedAt: timestamp('last_changed_at', { withTimezone: true }),
-	checkCount: integer('check_count').notNull().default(0)
+	checkCount: integer('check_count').notNull().default(0),
+	isLiveBlog: boolean('is_live_blog').notNull().default(false)
 });
 
 export const versions = pgTable('versions', {

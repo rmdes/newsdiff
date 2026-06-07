@@ -1,0 +1,1 @@
+ALTER TABLE "articles" ADD COLUMN "is_live_blog" boolean DEFAULT false NOT NULL;
