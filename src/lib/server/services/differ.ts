@@ -29,6 +29,37 @@ export function computeDiff(oldText: string, newText: string): DiffResult {
 	return { html, charsAdded, charsRemoved };
 }
 
+function normalizeWhitespace(s: string): string {
+	return s.replace(/\s+/g, ' ').trim();
+}
+
+function stripTime(s: string): string {
+	return s
+		// Relative times: "8 HRS ago", "3 hours ago", "2 mins ago", "5 minutes read"
+		.replace(/\d+\s*(hrs?|hours?|mins?|minutes?|secs?|seconds?|days?|weeks?|months?)\s*(ago|read|old)?/gi, '')
+		// Abbreviated relative times ("16m ago", "2h ago", "1d ago") — ago/old required
+		.replace(/\b\d+\s*(?:mo|s|m|h|d|w|y)\s+(?:ago|old)\b/gi, '')
+		// Absolute times: "12:34", "3:10 PM"
+		.replace(/\b\d{1,2}:\d{2}\s*(AM|PM)?\b/gi, '')
+		// ISO dates
+		.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '')
+		// European/US dates
+		.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, '')
+		// "Mar 24", "March 24, 2026"
+		.replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2}(?:,?\s*\d{4})?\b/gi, '')
+		// "24 March 2026"
+		.replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*(?:\s+\d{4})?\b/gi, '')
+		// "Updated/Published/Posted/Modified ..." clauses
+		.replace(/[•·\-–—]?\s*(?:updated|published|posted|modified|last\s+modified)\s*:?\s*[^\n.]*/gi, '')
+		// Timezone tokens
+		.replace(/\b(?:GMT|UTC|EST|CST|MST|PST|CET|CEST|BST|IST|JST|KST|AEST|AEDT)[+-]?\d*\b/gi, '');
+}
+
+/** Normalize for change comparison: collapse whitespace AND strip timestamps. */
+function normalizeForCompare(s: string): string {
+	return normalizeWhitespace(stripTime(s));
+}
+
 /**
  * Determines if a diff is "boring" — not worth showing to users.
  * Boring diffs include: whitespace-only, timestamp/time-ago changes,
@@ -36,48 +67,21 @@ export function computeDiff(oldText: string, newText: string): DiffResult {
  */
 export function isBoring(oldText: string, newText: string): boolean {
 	// Whitespace-only changes
-	const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
-	if (normalize(oldText) === normalize(newText)) return true;
+	if (normalizeWhitespace(oldText) === normalizeWhitespace(newText)) return true;
 
-	// Strip timestamps, relative times, and update/publish metadata before comparing
-	const stripTime = (s: string) =>
-		s
-			// Relative times: "8 HRS ago", "3 hours ago", "2 mins ago", "5 minutes read", etc.
-			.replace(/\d+\s*(hrs?|hours?|mins?|minutes?|secs?|seconds?|days?|weeks?|months?)\s*(ago|read|old)?/gi, '')
-			// Abbreviated relative times used by live blogs: "16m ago", "2h ago", "1d ago",
-			// "3w ago", "30s ago", "2mo ago", "5y ago". The "ago"/"old" suffix is REQUIRED so
-			// bare measurements (e.g. "a crowd of 16m") are never mistaken for a timestamp.
-			.replace(/\b\d+\s*(?:mo|s|m|h|d|w|y)\s+(?:ago|old)\b/gi, '')
-			// Absolute times: "12:34", "12:34 PM", "3:10 PM"
-			.replace(/\b\d{1,2}:\d{2}\s*(AM|PM)?\b/gi, '')
-			// ISO dates: "2026-03-24"
-			.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '')
-			// European/US dates: "24/03/2026", "03/24/2026"
-			.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, '')
-			// "Mar 24", "March 24, 2026"
-			.replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2}(?:,?\s*\d{4})?\b/gi, '')
-			// "24 March 2026"
-			.replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*(?:\s+\d{4})?\b/gi, '')
-			// "Updated ...", "Published ...", "Posted ...", "Modified ...", "Last modified: ..."
-			// followed by optional date/time text (greedy up to next sentence or newline)
-			.replace(/[•·\-–—]?\s*(?:updated|published|posted|modified|last\s+modified)\s*:?\s*[^\n.]*/gi, '')
-			// Timezone offsets: "GMT+1", "UTC-5", "EST"
-			.replace(/\b(?:GMT|UTC|EST|CST|MST|PST|CET|CEST|BST|IST|JST|KST|AEST|AEDT)[+-]?\d*\b/gi, '');
+	// Equal once timestamps/relative-times/update-metadata are stripped
+	if (normalizeForCompare(oldText) === normalizeForCompare(newText)) return true;
 
-	if (normalize(stripTime(oldText)) === normalize(stripTime(newText))) return true;
-
-	// Very small changes in large text are likely noise
+	// Very small changes in large text that are only numbers/punctuation
 	const changes = diffWords(oldText, newText);
-	const added = changes.filter(c => c.added);
-	const removed = changes.filter(c => c.removed);
-	const totalChanged = added.reduce((s, c) => s + c.value.length, 0)
-		+ removed.reduce((s, c) => s + c.value.length, 0);
+	const added = changes.filter((c) => c.added);
+	const removed = changes.filter((c) => c.removed);
+	const totalChanged =
+		added.reduce((s, c) => s + c.value.length, 0) + removed.reduce((s, c) => s + c.value.length, 0);
 	const totalLength = Math.max(oldText.length, newText.length);
 
-	// If total changed chars are tiny relative to the document, check if it's just numbers
 	if (totalChanged <= 10 && totalLength > 200) {
-		const allChangedText = [...added, ...removed].map(c => c.value).join('');
-		// Only numbers, whitespace, and punctuation changed
+		const allChangedText = [...added, ...removed].map((c) => c.value).join('');
 		if (/^[\d\s.,;:!?/\-–—]+$/.test(allChangedText)) return true;
 	}
 
