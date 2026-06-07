@@ -34,14 +34,20 @@ export const actions = {
 		return { success: true };
 	},
 
-	settings: async ({ request }) => {
+	setFlag: async ({ request }) => {
 		const data = await request.formData();
 		const id = Number(data.get('id'));
+		const field = data.get('field')?.toString();
+		const value = data.get('value') === 'true';
 		if (!Number.isInteger(id)) return fail(400, { error: 'Invalid feed id' });
-		// Unchecked checkboxes are absent from form data.
-		const syndicate = data.get('syndicate') === 'on';
-		const ignoreTitleChanges = data.get('ignoreTitleChanges') === 'on';
-		await db.update(feeds).set({ syndicate, ignoreTitleChanges }).where(eq(feeds.id, id));
+		// Update exactly one allowlisted boolean column.
+		if (field === 'syndicate') {
+			await db.update(feeds).set({ syndicate: value }).where(eq(feeds.id, id));
+		} else if (field === 'ignoreTitleChanges') {
+			await db.update(feeds).set({ ignoreTitleChanges: value }).where(eq(feeds.id, id));
+		} else {
+			return fail(400, { error: 'Unknown setting' });
+		}
 		return { success: true };
 	},
 

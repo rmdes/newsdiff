@@ -56,27 +56,29 @@
 					{/if}
 				</div>
 
-				<form method="POST" action="?/settings" use:enhance class="feed-settings">
-					<input type="hidden" name="id" value={feed.id} />
-					<label title="Broadcast this feed's changes to Bluesky and the fediverse">
-						<input
-							type="checkbox"
-							name="syndicate"
-							checked={feed.syndicate}
-							onchange={(e) => e.currentTarget.form?.requestSubmit()}
-						/>
-						Syndicate changes
-					</label>
-					<label title="Treat title changes on this feed as noise (good for IndieWeb sites where the title is the site identity, not a headline)">
-						<input
-							type="checkbox"
-							name="ignoreTitleChanges"
-							checked={feed.ignoreTitleChanges}
-							onchange={(e) => e.currentTarget.form?.requestSubmit()}
-						/>
-						Ignore title changes
-					</label>
-				</form>
+				<div class="feed-settings">
+					<form method="POST" action="?/setFlag" use:enhance>
+						<input type="hidden" name="id" value={feed.id} />
+						<input type="hidden" name="field" value="syndicate" />
+						<input type="hidden" name="value" value={String(!feed.syndicate)} />
+						<button type="submit" class="setting-toggle" class:on={feed.syndicate}
+							title="When on, changes from this feed are posted to Bluesky and the fediverse.">
+							Syndicate: {feed.syndicate ? 'On' : 'Off'}
+						</button>
+					</form>
+					<form method="POST" action="?/setFlag" use:enhance>
+						<input type="hidden" name="id" value={feed.id} />
+						<input type="hidden" name="field" value="ignoreTitleChanges" />
+						<input type="hidden" name="value" value={String(!feed.ignoreTitleChanges)} />
+						<button type="submit" class="setting-toggle" class:on={feed.ignoreTitleChanges}
+							title="When on, changes to each page's own headline/title are treated as noise (not shown, not syndicated). Body-text changes are unaffected. Useful for IndieWeb feeds where posts have no real headline.">
+							Ignore headline changes: {feed.ignoreTitleChanges ? 'On' : 'Off'}
+						</button>
+					</form>
+				</div>
+				<p class="settings-hint">
+					“Headline” = each tracked page’s own article/post title, not your site name.
+				</p>
 
 				{#if feed.lastError}
 					<div class="feed-error">
@@ -124,9 +126,13 @@
 
 	.feed-meta { display: flex; gap: 1rem; font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; flex-wrap: wrap; }
 
-	.feed-settings { display: flex; gap: 1.25rem; margin-top: 0.6rem; flex-wrap: wrap; }
-	.feed-settings label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--color-text); cursor: pointer; }
-	.feed-settings input[type='checkbox'] { cursor: pointer; }
+	.feed-settings { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+	.setting-toggle {
+		background: none; border: 1px solid var(--color-border); padding: 0.2rem 0.6rem;
+		border-radius: 1rem; cursor: pointer; font-size: 0.8rem; color: var(--color-muted);
+	}
+	.setting-toggle.on { background: var(--color-ins-bg); color: var(--color-ins-text); border-color: var(--color-ins-text); }
+	.settings-hint { margin: 0.35rem 0 0; font-size: 0.72rem; color: var(--color-muted); }
 
 	.feed-error {
 		margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.25rem;
