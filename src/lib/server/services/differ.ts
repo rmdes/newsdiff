@@ -44,6 +44,10 @@ export function isBoring(oldText: string, newText: string): boolean {
 		s
 			// Relative times: "8 HRS ago", "3 hours ago", "2 mins ago", "5 minutes read", etc.
 			.replace(/\d+\s*(hrs?|hours?|mins?|minutes?|secs?|seconds?|days?|weeks?|months?)\s*(ago|read|old)?/gi, '')
+			// Abbreviated relative times used by live blogs: "16m ago", "2h ago", "1d ago",
+			// "3w ago", "30s ago", "2mo ago", "5y ago". The "ago"/"old" suffix is REQUIRED so
+			// bare measurements (e.g. "a crowd of 16m") are never mistaken for a timestamp.
+			.replace(/\b\d+\s*(?:mo|s|m|h|d|w|y)\s+(?:ago|old)\b/gi, '')
 			// Absolute times: "12:34", "12:34 PM", "3:10 PM"
 			.replace(/\b\d{1,2}:\d{2}\s*(AM|PM)?\b/gi, '')
 			// ISO dates: "2026-03-24"

@@ -142,6 +142,43 @@ describe('isBoring', () => {
 		expect(isBoring(old, new_)).toBe(true);
 	});
 
+	// Live blogs (e.g. Guardian) stamp every entry with abbreviated relative times
+	// that tick on each poll. Only the "ago"/"old" form is stripped so real
+	// measurements (a bare "16m") are never mistaken for a timestamp.
+	it('returns true for abbreviated minutes "16m ago" -> "25m ago"', () => {
+		// Neutral wording (no "posted"/"updated") so this exercises the abbreviation
+		// stripping itself, not the boilerplate-keyword rule.
+		const old = 'Key events\n\nThe standings shifted 16m ago in dramatic fashion.';
+		const new_ = 'Key events\n\nThe standings shifted 25m ago in dramatic fashion.';
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('returns true for abbreviated hours "2h ago" -> "3h ago"', () => {
+		expect(isBoring('Race report filed 2h ago.', 'Race report filed 3h ago.')).toBe(true);
+	});
+
+	it('returns true for abbreviated days "1d ago" -> "2d ago"', () => {
+		expect(isBoring('The qualifying session ran 1d ago at Monaco.', 'The qualifying session ran 2d ago at Monaco.')).toBe(true);
+	});
+
+	it('returns true when several live-blog timers tick but no entry is added', () => {
+		const body = 'Antonelli leads the race.';
+		const old = `${body}\n\n18m ago\n\nDRS enabled.\n\n1h ago\n\nLights out.`;
+		const new_ = `${body}\n\n27m ago\n\nDRS enabled.\n\n2h ago\n\nLights out.`;
+		expect(isBoring(old, new_)).toBe(true);
+	});
+
+	it('does NOT strip a bare abbreviated number without an "ago" suffix', () => {
+		// "16m" here is a measurement/figure, not a timestamp — a real edit.
+		expect(isBoring('A crowd of 16m gathered.', 'A crowd of 25m gathered.')).toBe(false);
+	});
+
+	it('returns false when a live-blog poll adds real new commentary', () => {
+		const old = 'Key events\n\n18m ago\n\nLights out and away we go.';
+		const new_ = 'Key events\n\n27m ago\n\nLights out and away we go.\n\n5m ago\n\nAntonelli takes the lead with a stunning overtake into the chicane.';
+		expect(isBoring(old, new_)).toBe(false);
+	});
+
 	it('returns true for small numeric-only changes in large text', () => {
 		const body = 'A'.repeat(500);
 		expect(isBoring(`${body}\n\n123 views`, `${body}\n\n456 views`)).toBe(true);
