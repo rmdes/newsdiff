@@ -93,6 +93,7 @@
 				<a href="/diff/{group.latestDiff.id}" class="diff-card">
 					<div class="diff-meta">
 						<span class="feed-name" style="color: {color};">{group.article.feed.name}</span>
+						{#if group.article.isLiveBlog}<span class="badge-live">Live blog</span>{/if}
 						<time>{new Date(group.latestDiff.createdAt).toLocaleString()}</time>
 					</div>
 					<h2>{group.latestDiff.newVersion.title || group.latestDiff.oldVersion.title || 'Untitled'}</h2>
@@ -185,6 +186,7 @@
 	.badge { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 1rem; font-weight: 600; }
 	.badge-title { background: var(--color-del-bg); color: var(--color-del-text); }
 	.badge-content { background: var(--color-ins-bg); color: var(--color-ins-text); }
+	.badge-live { background: var(--color-del-bg); color: var(--color-del-text); border-radius: 1rem; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 600; }
 	.stats { font-size: 0.8rem; color: var(--color-muted); }
 
 	.group-actions { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 1rem; border-top: 1px solid var(--color-border); background: #f8fafc; font-size: 0.8rem; }

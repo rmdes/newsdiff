@@ -10,6 +10,7 @@
 <div class="meta">
 	<a href={article.url} target="_blank" rel="noopener">{article.url}</a>
 	<span>{article.feed.name}</span>
+	{#if article.isLiveBlog}<span class="badge-live">Live blog</span>{/if}
 	<span>{article.versions.length} version{article.versions.length !== 1 ? 's' : ''}</span>
 	<div class="subscribe-dropdown">
 		<button type="button" class="feed-link subscribe-btn" onclick={() => subscribeOpen = !subscribeOpen}>Subscribe</button>
@@ -70,6 +71,7 @@
 	.badge-title { background: var(--color-del-bg); color: var(--color-del-text); }
 	.badge-content { background: var(--color-ins-bg); color: var(--color-ins-text); }
 	.badge-boring { background: #e2e8f0; color: #475569; }
+	.badge-live { background: var(--color-del-bg); color: var(--color-del-text); border-radius: 1rem; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 600; }
 	.stats { font-size: 0.8rem; color: var(--color-muted); margin-left: auto; }
 	.empty { color: var(--color-muted); padding: 2rem 0; }
 </style>
