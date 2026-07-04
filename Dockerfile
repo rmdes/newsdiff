@@ -1,5 +1,8 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
+# node 22 ships npm 10, which writes a self-inconsistent lock for the
+# dual-version @noble/hashes tree; npm 11 resolves it correctly.
+RUN npm i -g npm@11
 COPY package*.json ./
 RUN npm ci
 COPY . .
